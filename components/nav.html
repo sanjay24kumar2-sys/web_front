@@ -1,0 +1,18 @@
+<nav class="nav">
+  <a href="messages.html">Messages</a>
+  <a href="groups.html">Data Groups</a>
+  <a href="devices.html">Devices</a>
+  <a href="setting.html">Setting</a>
+</nav>
+
+<script>
+  const current = window.location.pathname.split("/").pop();
+
+  document.querySelectorAll(".nav a").forEach(a => {
+    const link = a.getAttribute("href");
+
+    if (link === current) {
+      a.classList.add("active");
+    }
+  });
+</script>

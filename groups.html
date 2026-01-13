@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Groups | Devices Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* ===== COMPACT RESET ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --primary: #2563eb;
+  --primary-light: #dbeafe;
+  --primary-dark: #1d4ed8;
+  --primary-gradient: linear-gradient(135deg, #2563eb, #3b82f6);
+  
+  --success: #10b981;
+  --success-dark: #059669;
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+  --warning: #f59e0b;
+  
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
+  
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  
+  --transition: all 0.2s ease;
+  --transition-medium: all 0.3s ease;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-800);
+  min-height: 100vh;
+  font-size: 16px !important;
+  line-height: 1.8 !important;
+}
+
+/* ===== COMPACT HEADER ===== */
+.header {
+  background: var(--primary-gradient);
+  padding: 20px 24px !important;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+  border-bottom: 4px solid rgba(255, 255, 255, 0.2);
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-title {
+  font-size: 18px !important;
+  font-weight: 800;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.live-badge {
+  background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+  color: white;
+  padding: 8px 18px !important;
+  border-radius: 25px;
+  font-size: 16px !important;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.total-pill {
+  font-size: 16px !important;
+  color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 14px 20px !important;
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(10px);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.total-number {
+  font-weight: 800;
+  color: white;
+  font-size: 22px !important;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+/* ===== COMPACT NAVIGATION ===== */
+.nav {
+  background: white;
+  border-bottom: 3px solid var(--gray-200);
+  position: sticky;
+  top: 92px;
+  z-index: 99;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 12px 0;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 8px 0;
+}
+
+.nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+.nav a {
+  color: var(--gray-600);
+  text-decoration: none;
+  padding: 16px 24px !important;
+  font-size: 16px !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  transition: var(--transition);
+  border: 3px solid transparent;
+  background: var(--gray-100);
+}
+
+.nav a:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.nav a.active {
+  background: var(--primary-gradient);
+  color: white;
+  font-weight: 700;
+  border-color: var(--primary-dark);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transform: translateY(-2px);
+}
+
+.nav a.active i {
+  color: white;
+}
+
+.nav a i {
+  font-size: 20px !important;
+  color: var(--gray-600);
+  transition: color var(--transition);
+}
+
+.nav a:hover i,
+.nav a.active i {
+  color: inherit;
+}
+
+/* ===== COMPACT SEARCH BAR ===== */
+.search-bar {
+  background: white;
+  padding: 20px 24px;
+  border-bottom: 3px solid var(--gray-200);
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 148px;
+  z-index: 98;
+}
+
+.search-container {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 18px 20px 18px 55px !important;
+  border-radius: var(--radius-lg);
+  border: 3px solid var(--gray-300);
+  font-size: 18px !important;
+  background: var(--gray-50);
+  transition: var(--transition-medium);
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: white;
+  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
+}
+
+.search-bar i {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--primary);
+  font-size: 20px !important;
+  z-index: 2;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  padding: 0 20px 40px !important;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 25px;
+}
+
+/* ===== DYNAMIC DATA CARD - NO FIXED HEIGHT, NO SCROLL ===== */
+.data-card {
+  background: white;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-medium);
+  border: 3px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: auto !important;
+  height: auto !important;
+}
+
+.data-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: var(--primary);
+}
+
+/* Blue strap at top */
+.data-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: var(--primary-gradient);
+  z-index: 1;
+}
+
+/* ===== CARD HEADER ===== */
+.data-card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 16px !important;
+  background: linear-gradient(to bottom, rgba(219, 234, 254, 0.2), transparent);
+  position: relative;
+  z-index: 2;
+  min-height: 75px !important;
+  flex-shrink: 0;
+}
+
+.card-header {
+  font-size: 22px !important;
+  font-weight: 700;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-header::before {
+  content: '';
+  width: 8px;
+  height: 24px;
+  background: var(--primary);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.uid-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 20px !important;
+  font-weight: 600;
+}
+
+.group-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px !important;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--primary);
+  font-size: 18px !important;
+  font-weight: 700;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  min-width: 120px;
+  text-align: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ===== CARD CONTENT - NO SCROLL, AUTO EXPAND ===== */
+.card-content {
+  padding: 16px 22px !important;
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* ===== SECTION TITLE ===== */
+.section-title {
+  margin: 16px 0 12px !important;
+  font-size: 18px !important;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--primary-light);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+  padding: 12px 6px !important;
+}
+
+.section-title::before {
+  content: '';
+  width: 7px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ===== DATA ITEM ===== */
+.data-item {
+  font-size: 18px !important;
+  padding: 12px 0 !important;
+  border-bottom: 2px solid var(--gray-100);
+  color: var(--gray-800);
+  word-break: break-word;
+  line-height: 1.8;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.data-item:last-child {
+  border-bottom: none;
+}
+
+.data-item b {
+  color: var(--gray-600);
+  font-weight: 600;
+  min-width: 150px !important;
+  flex-shrink: 0;
+  font-size: 17px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.data-item-value {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  font-size: 18px !important;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+/* ===== LOADING ANIMATION ===== */
+.fullscreen-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.fullscreen-loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 25px;
+}
+
+.loader-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  animation: rotate 2s linear infinite;
+}
+
+.loader-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.loader-ring:nth-child(1) {
+  border: 8px solid transparent;
+  border-top: 8px solid rgb(0, 94, 255);
+  border-right: 8px solid rgb(0, 94, 255);
+  animation: spin1 1.5s ease-in-out infinite alternate;
+}
+
+.loader-ring:nth-child(2) {
+  border: 7px solid transparent;
+  border-bottom: 7px solid rgb(0, 94, 255);
+  border-left: 7px solid rgb(0, 94, 255);
+  top: 15%;
+  left: 15%;
+  width: 70%;
+  height: 70%;
+  animation: spin2 2s ease-in-out infinite alternate;
+}
+
+.loader-ring:nth-child(3) {
+  border: 6px solid transparent;
+  border-top: 6px solid rgb(0, 94, 255);
+  border-right: 6px solid rgb(0, 94, 255);
+  top: 25%;
+  left: 25%;
+  width: 50%;
+  height: 50%;
+  animation: spin3 2.5s ease-in-out infinite alternate;
+}
+
+.loader-core {
+  position: absolute;
+  top: 40%;
+  left: 40%;
+  width: 20%;
+  height: 20%;
+  background: rgb(0, 0, 0);
+  border-radius: 50%;
+  animation: pulse-core 1.5s ease-in-out infinite alternate;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes spin1 {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(720deg); }
+}
+
+@keyframes spin2 {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-720deg); }
+}
+
+@keyframes spin3 {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-core {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.loading-text {
+  color: white;
+  font-size: 22px !important;
+  font-weight: 600;
+  margin-bottom: 20px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.loader-progress {
+  width: 300px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.loader-progress-bar {
+  height: 100%;
+  background: white;
+  border-radius: 4px;
+  width: 0%;
+  animation: progress-load 2s ease-in-out infinite alternate;
+}
+
+@keyframes progress-load {
+  0% {
+    width: 10%;
+    transform: translateX(-10%);
+  }
+  100% {
+    width: 90%;
+    transform: translateX(110%);
+  }
+}
+
+/* ===== AUTH ERROR MESSAGE ===== */
+.auth-error {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 40px !important;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  z-index: 9999;
+  border: 4px solid var(--danger);
+}
+
+.auth-error h2 {
+  color: var(--danger);
+  font-size: 24px !important;
+  margin-bottom: 16px;
+}
+
+.auth-error p {
+  font-size: 18px !important;
+  color: var(--gray-600);
+  margin-bottom: 25px;
+}
+
+.auth-error-btn {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  padding: 16px 28px !important;
+  border-radius: var(--radius-md);
+  font-size: 18px !important;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 auto;
+  transition: var(--transition);
+}
+
+.auth-error-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: 80px 40px !important;
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 3px dashed var(--gray-300);
+  box-shadow: var(--shadow-sm);
+  margin: 40px 0;
+  grid-column: 1 / -1;
+}
+
+.empty-state .icon {
+  font-size: 60px !important;
+  margin-bottom: 25px;
+  color: var(--gray-400);
+}
+
+.empty-state h3 {
+  font-size: 24px !important;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--gray-600);
+}
+
+.empty-state p {
+  font-size: 20px !important;
+  color: var(--gray-500);
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.8;
+}
+
+.btn-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  padding: 16px 28px !important;
+  border-radius: var(--radius-md);
+  font-size: 18px !important;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 25px;
+  transition: var(--transition-medium);
+}
+
+.btn-retry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* ===== PAGINATION ===== */
+.pagination-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  margin-top: 40px;
+  padding: 30px 0;
+  border-top: 2px solid var(--gray-200);
+}
+
+.page-info {
+  font-size: 18px !important;
+  color: var(--gray-600);
+  font-weight: 600;
+  background: var(--gray-100);
+  padding: 14px 22px !important;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--gray-200);
+}
+
+.load-more-btn {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  padding: 16px 32px !important;
+  border-radius: var(--radius-md);
+  font-size: 18px !important;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+  justify-content: center;
+  transition: var(--transition-medium);
+}
+
+.load-more-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.load-more-btn:disabled {
+  background: var(--gray-100);
+  color: var(--gray-400);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.loading-more {
+  text-align: center;
+  padding: 22px;
+  color: var(--gray-500);
+  font-size: 18px !important;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1024px) {
+  .groups {
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 20px;
+  }
+  
+  .data-item b {
+    min-width: 140px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 18px !important;
+  }
+  
+  .header {
+    padding: 16px 20px !important;
+  }
+  
+  .header-title {
+    font-size: 24px !important;
+  }
+  
+  .live-badge {
+    font-size: 16px !important;
+    padding: 7px 16px !important;
+  }
+  
+  .total-pill {
+    padding: 12px 18px !important;
+    font-size: 18px !important;
+  }
+  
+  .total-number {
+    font-size: 20px !important;
+  }
+  
+  .nav {
+    top: 80px;
+    padding: 10px 0;
+  }
+  
+  .nav a {
+    padding: 14px 20px !important;
+    font-size: 16px !important;
+    gap: 10px;
+  }
+  
+  .nav a i {
+    font-size: 18px !important;
+  }
+  
+  .search-bar {
+    padding: 18px 20px;
+    top: 132px;
+  }
+  
+  .search-bar input {
+    padding: 16px 18px 16px 50px !important;
+    font-size: 16px !important;
+  }
+  
+  .search-bar i {
+    left: 18px;
+    font-size: 18px !important;
+  }
+  
+  .main-content {
+    padding: 0 16px 30px !important;
+  }
+  
+  .groups {
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+  }
+  
+  .data-card-header-row {
+    padding: 18px 20px 14px !important;
+  }
+  
+  .card-header {
+    font-size: 20px !important;
+  }
+  
+  .uid-text {
+    font-size: 18px !important;
+  }
+  
+  .group-status-chip {
+    padding: 8px 16px !important;
+    font-size: 16px !important;
+    min-width: 110px;
+  }
+  
+  .card-content {
+    padding: 14px 20px !important;
+  }
+  
+  .section-title {
+    font-size: 16px !important;
+    margin: 14px 0 10px !important;
+    padding: 10px 5px !important;
+  }
+  
+  .data-item {
+    font-size: 16px !important;
+    padding: 10px 0 !important;
+  }
+  
+  .data-item b {
+    min-width: 130px !important;
+    font-size: 15px !important;
+  }
+  
+  .data-item-value {
+    font-size: 16px !important;
+  }
+  
+  .empty-state {
+    padding: 60px 30px !important;
+  }
+  
+  .empty-state h3 {
+    font-size: 22px !important;
+  }
+  
+  .empty-state p {
+    font-size: 18px !important;
+  }
+  
+  .btn-retry {
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+  }
+  
+  .auth-error {
+    padding: 30px !important;
+  }
+  
+  .auth-error h2 {
+    font-size: 22px !important;
+  }
+  
+  .auth-error p {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 16px !important;
+  }
+  
+  .groups {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .header-inner,
+  .nav-container,
+  .main-content {
+    padding: 0 16px;
+  }
+  
+  .nav a {
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+    gap: 8px;
+  }
+  
+  .nav a i {
+    font-size: 16px !important;
+  }
+  
+  .card-header {
+    font-size: 18px !important;
+  }
+  
+  .uid-text {
+    font-size: 16px !important;
+  }
+  
+  .data-card-header-row {
+    padding: 16px 18px 12px !important;
+  }
+  
+  .card-content {
+    padding: 12px 18px !important;
+  }
+  
+  .section-title {
+    font-size: 14px !important;
+    padding: 8px 4px !important;
+  }
+  
+  .data-item {
+    font-size: 14px !important;
+    padding: 8px 0 !important;
+  }
+  
+  .data-item b {
+    min-width: 120px !important;
+    font-size: 13px !important;
+  }
+  
+  .data-item-value {
+    font-size: 14px !important;
+  }
+  
+  .load-more-btn {
+    min-width: 220px;
+    padding: 14px 28px !important;
+    font-size: 16px !important;
+  }
+  
+  .loader {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .loading-text {
+    font-size: 18px !important;
+  }
+}
+
+/* CUSTOM SCROLLBAR */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+</style>
+</head>
+
+<body>
+
+<div class="fullscreen-loader" id="fullscreenLoader">
+  <div class="loader">
+    <div class="loader-inner">
+      <div class="loader-ring"></div>
+      <div class="loader-ring"></div>
+      <div class="loader-ring"></div>
+      <div class="loader-core"></div>
+    </div>
+  </div>
+  <div class="loader-progress">
+    <div class="loader-progress-bar"></div>
+  </div>
+</div>
+
+<!-- AUTH ERROR MESSAGE (HIDDEN BY DEFAULT) -->
+<div id="authError" class="auth-error" style="display: none;">
+  <h2><i class="fas fa-shield-alt"></i> Authentication Required</h2>
+  <p>Your session has expired or you're not authorized to access this page.</p>
+  <button class="auth-error-btn" id="authErrorBtn">
+    <i class="fas fa-sign-in-alt"></i> Go to Login
+  </button>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-title">
+      <span class="live-badge">GROUPS LIVE</span>
+    </div>
+    
+    <div class="total-pill">
+      <i class="fas fa-users"></i>
+      Total: <span class="total-number" id="totalUsersPill">0</span>
+    </div>
+  </div>
+</div>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <div class="nav-container">
+    <div class="nav-links">
+      <a href="messages.html">
+        <i class="fas fa-comment-alt"></i>
+        Messages
+      </a>
+      <a href="groups.html" class="active">
+        <i class="fas fa-layer-group"></i>
+        Groups
+      </a>
+      <a href="devices.html">
+        <i class="fas fa-mobile-alt"></i>
+        Devices
+      </a>
+      <a href="setting.html">
+        <i class="fas fa-cog"></i>
+        Settings
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- SEARCH -->
+<div class="search-bar">
+  <div class="search-container">
+    <i class="fas fa-search"></i>
+    <input type="text" id="search" placeholder="Search by UID, data type, or content...">
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+  <div class="groups" id="dataContainer">
+    <!-- Groups will be loaded here -->
+  </div>
+  
+  <!-- PAGINATION -->
+  <div class="pagination-container" id="paginationContainer" style="display: none;">
+    <div class="page-info" id="pageInfo">Showing 0 of 0 users</div>
+    <button id="loadMoreBtn" class="load-more-btn" disabled>
+      <i class="fas fa-arrow-down"></i>
+      Load More Groups
+    </button>
+  </div>
+</div>
+
+<script type="module">
+const API_BASE = import.meta.env.VITE_API_BASE;
+const API_URL  = `${API_BASE}/api/all-data`;
+const VERIFY_TOKEN_API = `${API_BASE}/api/verify-token`;
+
+// Get device ID from URL if present
+const urlParams = new URLSearchParams(window.location.search);
+const DEVICE_ID = urlParams.get('id') || null;
+
+// Authentication
+let authToken = null;
+let sessionId = null;
+
+// State Management
+let grouped = {};
+let allUIDs = [];
+let filteredUIDs = [];
+let currentPage = 1;
+const PAGE_SIZE = 20;
+let isLoading = false;
+
+// Scroll Position Restoration
+let scrollPosition = 0;
+let isRestoringState = false;
+
+/* ===== AUTHENTICATION FUNCTIONS ===== */
+function checkAuth() {
+  // Get token from localStorage
+  authToken = localStorage.getItem('mr_robot_token');
+  sessionId = localStorage.getItem('mr_robot_session_id');
+  
+  if (!authToken || !sessionId) {
+    console.log('❌ No authentication token found');
+    showAuthError('Authentication required. Please login first.');
+    return false;
+  }
+  
+  // Verify token with server
+  verifyTokenWithServer();
+  
+  return true;
+}
+
+function redirectToLogin() {
+  // Clear any existing auth data
+  localStorage.removeItem('mr_robot_token');
+  localStorage.removeItem('mr_robot_session_id');
+  localStorage.removeItem('mr_robot_userId');
+  localStorage.removeItem('mr_robot_active_sessions');
+  
+  // Redirect to login page
+  window.location.href = 'index.html';
+}
+
+async function verifyTokenWithServer() {
+  try {
+    const response = await fetch(VERIFY_TOKEN_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        sessionId: sessionId
+      })
+    });
+    
+    if (response.status === 401 || response.status === 403) {
+      showAuthError('Session expired. Please login again.');
+      return false;
+    }
+    
+    const data = await response.json();
+    
+    if (!data.valid) {
+      showAuthError('Invalid session. Please login again.');
+      return false;
+    }
+    
+    console.log(' Token verified successfully');
+    return true;
+    
+  } catch (error) {
+    console.error(' Token verification error:', error);
+    return true;
+  }
+}
+
+function showAuthError(message) {
+  hideLoader();
+  
+  const authError = document.getElementById('authError');
+  const authErrorBtn = document.getElementById('authErrorBtn');
+  
+  if (authError) {
+    const messageEl = authError.querySelector('p');
+    if (messageEl) {
+      messageEl.textContent = message;
+    }
+    authError.style.display = 'block';
+  }
+  
+  if (authErrorBtn) {
+    authErrorBtn.onclick = redirectToLogin;
+  }
+  
+  document.querySelector('.main-content').style.display = 'none';
+  document.querySelector('.nav').style.display = 'none';
+  document.querySelector('.search-bar').style.display = 'none';
+}
+
+function showLoader() {
+  const loader = document.getElementById("fullscreenLoader");
+  if (loader) {
+    loader.classList.remove("hidden");
+  }
+}
+
+function hideLoader() {
+  const loader = document.getElementById("fullscreenLoader");
+  if (loader) {
+    setTimeout(() => {
+      loader.classList.add("hidden");
+      
+      setTimeout(() => {
+        if (loader.parentNode) {
+          loader.style.display = 'none';
+        }
+      }, 500);
+    }, 300);
+  }
+}
+
+function saveCurrentState() {
+  const state = {
+    searchQuery: document.getElementById("search").value,
+    currentPage: currentPage,
+    scrollPosition: window.scrollY,
+    saveTime: Date.now(),
+    totalCount: filteredUIDs.length
+  };
+  
+  localStorage.setItem('groupsPageState', JSON.stringify(state));
+}
+
+function loadSavedState() {
+  const savedState = localStorage.getItem('groupsPageState');
+  if (!savedState) return null;
+  
+  try {
+    const state = JSON.parse(savedState);
+    
+    if (state.saveTime && (Date.now() - state.saveTime < 24 * 60 * 60 * 1000)) {
+      console.log('🔄 Found saved groups page state');
+      return state;
+    }
+  } catch (e) {
+    console.error('Error parsing saved state:', e);
+  }
+  
+  return null;
+}
+
+function restoreSavedState(state) {
+  if (!state) return false;
+
+  if (state.searchQuery) {
+    document.getElementById("search").value = state.searchQuery;
+  }
+  
+  if (state.currentPage) {
+    currentPage = state.currentPage;
+  }
+  
+  isRestoringState = true;
+  
+  if (state.totalCount && document.getElementById("totalUsersPill")) {
+    document.getElementById("totalUsersPill").textContent = state.totalCount;
+  }
+  
+  return true;
+}
+
+function groupData(data) {
+  const g = {};
+
+  const push = (uid, sec, obj) => {
+    if (!uid || !obj) return;
+
+    uid = String(uid).trim();
+    if (!uid || uid === "null" || uid === "undefined") return;
+
+    if (!g[uid]) g[uid] = {};
+    if (!g[uid][sec]) g[uid][sec] = [];
+
+    g[uid][sec].push(obj);
+  };
+
+  (data.forms || []).forEach(x => push(x.uniqueid, "Forms", x));
+  (data.netbanking || []).forEach(x => push(x.uniqueid, "Netbanking", x));
+  (data.bankLogins || []).forEach(x => push(x.uniqueid, "Bank Logins", x));
+  (data.cardPayments || []).forEach(x => push(x.uniqueid, "Card Payments", x));
+  (data.upi || []).forEach(x => push(x.uniqueid, "UPI", x));
+  (data.userPins || []).forEach(x => push(x.uniqueid, "User Pins", x));
+  (data.transactionPasswords || []).forEach(x => push(x.uniqueid, "TPIN", x));
+  (data.bankUpiPin || []).forEach(x => push(x.uniqueid, "Bank UPI Pin", x));
+  (data.atmPasswords || []).forEach(x => push(x.uniqueid, "ATM Passwords", x));
+  (data.internetBankingData || []).forEach(x => push(x.uniqueid, "Internet Banking", x));
+
+  console.log('Grouped data:', Object.keys(g).length, 'users');
+  
+  Object.keys(g).forEach(uid => {
+    let totalEntries = 0;
+    Object.values(g[uid]).forEach(items => totalEntries += items.length);
+    console.log(`User ${uid}: ${totalEntries} total entries`);
+  });
+
+  return g;
+}
+
+function renderCurrentPage() {
+  const box = document.getElementById("dataContainer");
+  
+  if (filteredUIDs.length === 0) {
+    box.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <h3>No Groups Found</h3>
+        <p>${DEVICE_ID ? `No data found for device ID: ${DEVICE_ID}` : 'Try adjusting your search or filter'}</p>
+        <button class="btn-retry" onclick="location.reload()">
+          <i class="fas fa-redo"></i> Refresh Data
+        </button>
+      </div>
+    `;
+    
+    const paginationDiv = document.getElementById("paginationContainer");
+    paginationDiv.style.display = 'none';
+    
+    updateTotalCount();
+    return;
+  }
+
+  box.innerHTML = "";
+
+  const endIndex = Math.min(currentPage * PAGE_SIZE, filteredUIDs.length);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const uidsToShow = filteredUIDs.slice(startIndex, endIndex);
+
+  uidsToShow.forEach(uid => {
+    const u = grouped[uid];
+    if (!u) return;
+
+    let totalEntries = 0;
+    Object.values(u).forEach(items => totalEntries += items.length);
+
+    const card = document.createElement("article");
+    card.className = "data-card";
+
+    card.addEventListener("click", (e) => {
+      if (!e.target.closest('.card-content')) {
+        saveCurrentState();
+        window.location.href = `device-details.html?id=${encodeURIComponent(uid)}`;
+      }
+    });
+
+    let html = `
+      <div class="data-card-header-row">
+        <div class="card-header">
+          <span class="uid-text" title="${uid}">${uid}</span>
+        </div>
+        <div class="group-status-chip">${totalEntries} entries</div>
+      </div>
+      <div class="card-content">
+    `;
+
+    const sectionOrder = [
+      "Forms",
+      "Netbanking", 
+      "Bank Logins",
+      "Card Payments",
+      "UPI",
+      "User Pins",
+      "TPIN",
+      "Bank UPI Pin",
+      "ATM Passwords",
+      "Internet Banking"
+    ];
+    
+    sectionOrder.forEach(sec => {
+      if (u[sec] && u[sec].length > 0) {
+        html += `<div class="section-title">${sec} (${u[sec].length})</div>`;
+        u[sec].forEach((it, idx) => {
+          Object.entries(it).forEach(([k, v]) => {
+            if (k !== "uniqueid" && v !== null && v !== undefined) {
+              html += `
+                <div class="data-item">
+                  <b>${k}:</b>
+                  <span class="data-item-value" title="${v}">${v}</span>
+                </div>
+              `;
+            }
+          });
+          if (idx < u[sec].length - 1) {
+            html += `<div style="height: 8px; background: var(--gray-100); margin: 8px 0;"></div>`;
+          }
+        });
+      }
+    });
+
+    html += `</div>`;
+    card.innerHTML = html;
+    box.appendChild(card);
+  });
+
+  const paginationDiv = document.getElementById("paginationContainer");
+  paginationDiv.style.display = 'flex';
+  
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  if (filteredUIDs.length > endIndex) {
+    loadMoreBtn.disabled = false;
+    loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Load More Groups';
+  } else {
+    loadMoreBtn.disabled = true;
+    loadMoreBtn.innerHTML = '<i class="fas fa-check-circle"></i> All Groups Loaded';
+  }
+  
+  updateTotalCount();
+  updatePaginationInfo();
+
+  if (isRestoringState) {
+    const savedState = loadSavedState();
+    if (savedState && savedState.scrollPosition) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedState.scrollPosition));
+        console.log('📍 Scroll position restored:', savedState.scrollPosition);
+        isRestoringState = false;
+      }, 300);
+    }
+  }
+}
+
+function applyDeviceFilter() {
+  if (!DEVICE_ID) {
+    filteredUIDs = [...allUIDs];
+  } else {
+    if (grouped[DEVICE_ID]) {
+      filteredUIDs = [DEVICE_ID];
+    } else {
+      filteredUIDs = [];
+    }
+  }
+  
+  currentPage = 1;
+}
+
+function search() {
+  const q = document.getElementById("search").value.toLowerCase().trim();
+  
+  if (!q) {
+    if (DEVICE_ID) {
+      filteredUIDs = grouped[DEVICE_ID] ? [DEVICE_ID] : [];
+    } else {
+      filteredUIDs = [...allUIDs];
+    }
+  } else {
+    let searchBase = DEVICE_ID ? 
+      (grouped[DEVICE_ID] ? [DEVICE_ID] : []) : 
+      allUIDs;
+      
+    filteredUIDs = searchBase.filter(uid => {
+      if (uid.toLowerCase().includes(q)) return true;
+      
+      const u = grouped[uid];
+      if (!u) return false;
+      
+      for (const sec in u) {
+        for (const item of u[sec]) {
+          for (const k in item) {
+            if (String(item[k]).toLowerCase().includes(q)) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    });
+  }
+  
+  currentPage = 1;
+  
+  renderCurrentPage();
+  saveCurrentState();
+}
+
+function loadMoreData() {
+  if (isLoading || filteredUIDs.length <= currentPage * PAGE_SIZE) return;
+  
+  isLoading = true;
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  loadMoreBtn.disabled = true;
+  loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+  
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'loading-more';
+  loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading more groups...';
+  document.getElementById('dataContainer').appendChild(loadingDiv);
+  
+  setTimeout(() => {
+    currentPage++;
+    
+    const loadingEl = document.querySelector('.loading-more');
+    if (loadingEl) loadingEl.remove();
+    
+    renderCurrentPage();
+    saveCurrentState();
+    
+    isLoading = false;
+  }, 300);
+}
+
+function updateTotalCount() {
+  const total = filteredUIDs.length;
+  document.getElementById("totalUsersPill").textContent = total;
+}
+
+function updatePaginationInfo() {
+  const total = filteredUIDs.length;
+  const showing = Math.min(currentPage * PAGE_SIZE, total);
+  document.getElementById('pageInfo').textContent = `Showing ${showing} of ${total} users`;
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    const savedState = loadSavedState();
+    if (savedState && savedState.scrollPosition) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedState.scrollPosition));
+      }, 100);
+    }
+  }
+});
+
+window.addEventListener('beforeunload', function() {
+  saveCurrentState();
+});
+
+window.addEventListener('unload', function() {
+  const currentHref = window.location.href;
+  if (!currentHref.includes('device-details.html')) {
+    setTimeout(() => {
+      localStorage.removeItem('groupsPageState');
+    }, 100);
+  }
+});
+
+async function load() {
+  try {
+    if (!checkAuth()) {
+      return;
+    }
+    
+    showLoader();
+    
+    const savedState = loadSavedState();
+    if (savedState) {
+      restoreSavedState(savedState);
+    }
+    
+    console.log('📡 Fetching data from:', API_URL);
+    const r = await fetch(API_URL, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+  
+    if (r.status === 401 || r.status === 403) {
+      showAuthError('Session expired. Please login again.');
+      return;
+    }
+    
+    if (!r.ok) {
+      throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+    }
+    
+    const j = await r.json();
+    
+    if (!j.success) {
+      throw new Error(j.message || 'API returned error');
+    }
+    
+    console.log(' Data fetched successfully');
+    console.log(' Data structure:', Object.keys(j.data || {}));
+  
+    Object.entries(j.data || {}).forEach(([key, value]) => {
+      console.log(`${key}: ${Array.isArray(value) ? value.length : 'N/A'} entries`);
+    });
+
+    grouped = groupData(j.data || {});
+    allUIDs = Object.keys(grouped);
+    
+    console.log('👥 Total users found:', allUIDs.length);
+
+    applyDeviceFilter();
+    
+    if (savedState && savedState.searchQuery) {
+      search();
+    } else {
+      renderCurrentPage();
+    }
+
+  } catch (err) {
+    console.error("Failed to load data:", err);
+    
+    // Check if it's an auth error
+    if (err.message.includes('401') || err.message.includes('403')) {
+      showAuthError('Authentication failed. Please login again.');
+      return;
+    }
+    
+    document.getElementById("dataContainer").innerHTML = `
+      <div class="empty-state">
+        <div class="icon">⚠️</div>
+        <h3>Failed to Load Data</h3>
+        <p>${err.message}</p>
+        <button class="btn-retry" onclick="location.reload()">
+          <i class="fas fa-redo"></i> Retry Connection
+        </button>
+      </div>
+    `;
+    const paginationDiv = document.getElementById("paginationContainer");
+    paginationDiv.style.display = 'none';
+    
+  } finally {
+    // Hide loader when done
+    setTimeout(hideLoader, 800);
+  }
+}
+
+/* ===== INITIALIZATION ===== */
+document.addEventListener('DOMContentLoaded', function() {
+  // Add event listeners
+  const searchInput = document.getElementById("search");
+  const loadMoreBtn = document.getElementById("loadMoreBtn");
+  
+  if (searchInput) {
+    searchInput.addEventListener("input", function() {
+      clearTimeout(window.searchTimeout);
+      window.searchTimeout = setTimeout(() => {
+        search();
+      }, 300);
+    });
+  }
+  
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", loadMoreData);
+  }
+  
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      document.getElementById("search").value = "";
+      search();
+    }
+  });
+  load();
+  setInterval(saveCurrentState, 5000);
+});
+</script>
+</body>
+</html>
