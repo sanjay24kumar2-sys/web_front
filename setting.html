@@ -1116,7 +1116,7 @@
             <i class="fas fa-toggle-on"></i>
             Forward Status
           </label>
-          <select id="statusSelect" onchange="handleStatusChange()">
+          <select id="statusSelect">
             <option value="OFF">OFF - Disabled</option>
             <option value="ON">ON - Enabled</option>
           </select>
@@ -1127,7 +1127,7 @@
               Forward Number
             </label>
             <input type="text" id="numbersInput" placeholder="Enter phone number (e.g., +919876543210)" />
-            <button class="save-btn" onclick="saveSettings()">
+            <button id="saveForwardBtn" class="save-btn">
               <i class="fas fa-save"></i>
               Save Forward Settings
             </button>
@@ -1192,7 +1192,7 @@
           </label>
           <input type="password" id="confirmPass" placeholder="Confirm new password" />
 
-          <button class="save-btn" onclick="changePassword()">
+          <button id="changePasswordBtn" class="save-btn">
             <i class="fas fa-key"></i>
             Update Password
           </button>
@@ -1216,12 +1216,12 @@
             </p>
             
             <div style="display: flex; flex-direction: column; gap: 12px;">
-              <button class="logout-btn logout-all-btn" onclick="logoutFromAllSessions()">
+              <button id="logoutAllBtn" class="logout-btn logout-all-btn">
                 <i class="fas fa-sign-out-alt"></i>
                 Logout From All Devices
               </button>
               
-              <button class="logout-btn logout-current-btn" onclick="logoutFromCurrentSession()">
+              <button id="logoutCurrentBtn" class="logout-btn logout-current-btn">
                 <i class="fas fa-sign-out-alt"></i>
                 Logout From This Device Only
               </button>
@@ -1237,8 +1237,8 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script type="module">
 
-<script type="module">
 const API_BASE = import.meta.env.VITE_API_BASE;
     const API_URL    = `${API_BASE}/api/admin-number`;
     const PASS_API   = `${API_BASE}/api/admin-password`;
@@ -1503,7 +1503,7 @@ const API_BASE = import.meta.env.VITE_API_BASE;
         const ip = session.ip || "Unknown IP";
         
         html += `
-          <div class="session-item">
+          <div class="session-item" data-session-id="${session.sessionId}">
             <div class="session-info">
               <div class="session-id">
                 <i class="fas fa-fingerprint"></i>
@@ -1530,7 +1530,7 @@ const API_BASE = import.meta.env.VITE_API_BASE;
                   <i class="fas fa-check-circle"></i>
                   Current
                 </button>` : 
-                `<button class="session-btn logout" onclick="logoutFromSession('${session.sessionId}')">
+                `<button class="session-btn logout" data-action="logout-session">
                   <i class="fas fa-sign-out-alt"></i>
                   Logout
                 </button>`
@@ -1807,11 +1807,65 @@ const API_BASE = import.meta.env.VITE_API_BASE;
       }
     }
 
+    // ===================== SETUP EVENT LISTENERS =====================
+    function setupEventListeners() {
+      // Status select change
+      document.getElementById('statusSelect').addEventListener('change', handleStatusChange);
+      
+      // Save forward settings button
+      document.getElementById('saveForwardBtn').addEventListener('click', saveSettings);
+      
+      // Change password button
+      document.getElementById('changePasswordBtn').addEventListener('click', changePassword);
+      
+      // Logout buttons
+      document.getElementById('logoutAllBtn').addEventListener('click', logoutFromAllSessions);
+      document.getElementById('logoutCurrentBtn').addEventListener('click', logoutFromCurrentSession);
+      
+      // Session logout buttons (event delegation)
+      document.getElementById('sessionsList').addEventListener('click', async (event) => {
+        const target = event.target;
+        const logoutBtn = target.closest('[data-action="logout-session"]');
+        
+        if (logoutBtn) {
+          const sessionItem = logoutBtn.closest('.session-item');
+          const sessionId = sessionItem.dataset.sessionId;
+          
+          if (sessionId) {
+            await logoutFromSession(sessionId);
+          }
+        }
+      });
+      
+      // Allow pressing Enter in password fields to trigger change password
+      document.getElementById('newPass').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          changePassword();
+        }
+      });
+      
+      document.getElementById('confirmPass').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          changePassword();
+        }
+      });
+      
+      // Allow pressing Enter in number input to trigger save
+      document.getElementById('numbersInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          saveSettings();
+        }
+      });
+    }
+
     // ===================== INITIALIZATION =====================
     window.onload = async () => {
       if (!checkAuth()) {
         return;
       }
+      
+      // Setup all event listeners first
+      setupEventListeners();
       
       initSocket();
       
