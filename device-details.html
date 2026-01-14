@@ -4175,24 +4175,59 @@ function renderHistory() {
 }
 
 function handleLiveSMS(data) {
-  if (!data || !data.data || data.uid !== DEVICE_ID) return;
+  console.log('🔔 Details page received live SMS:', data);
   
-  const smsData = data.data;
-  const smsId = smsData.id || `live_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Extract SMS data from different possible structures
+  let smsData = data.data || data;
   
-  if (processedLiveSmsIds.has(smsId)) return;
+  if (!smsData || (!smsData.body && !smsData.message && !smsData.content)) {
+    console.log('⚠️ Invalid SMS data in details:', smsData);
+    return;
+  }
+  
+  // Check if this SMS belongs to current device
+  const deviceId = data.uid || smsData.uniqueid || smsData.deviceId || smsData.uid;
+  if (deviceId !== DEVICE_ID) return;
+  
+  const smsId = smsData.id || smsData._id || `live_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  if (processedLiveSmsIds.has(smsId)) {
+    console.log('⏭️ Already processed this SMS in details:', smsId);
+    return;
+  }
+  
   processedLiveSmsIds.add(smsId);
   
+  // Extract message body from different possible fields
+  let messageBody = '';
+  if (smsData.body) messageBody = smsData.body;
+  else if (smsData.message) messageBody = smsData.message;
+  else if (smsData.content) messageBody = smsData.content;
+  else if (smsData.sms) messageBody = smsData.sms;
+  else if (smsData.body_preview) messageBody = smsData.body_preview;
+  else if (typeof smsData === 'string') messageBody = smsData;
+  
+  // Extract sender from different possible fields
+  let sender = smsData.sender || smsData.senderNumber || smsData.from || 'Unknown';
+  let receiver = smsData.receiver || smsData.receiverNumber || smsData.to || 'Unknown';
+  
+  console.log('📝 Details page parsed SMS:', {
+    sender,
+    receiver,
+    body: messageBody.substring(0, 50) + '...',
+    timestamp: smsData.timestamp
+  });
+  
   const newSms = {
-    from: smsData.sender || smsData.from || 'Unknown',
-    body: smsData.body || smsData.message || '',
+    from: sender,
+    body: messageBody,
     timestamp: smsData.timestamp || Date.now(),
     isLive: true,
     id: smsId,
-    sender: smsData.sender || smsData.from || 'Unknown',
-    receiver: smsData.receiver || smsData.to || 'Unknown',
-    senderNumber: smsData.senderNumber || smsData.from,
-    receiverNumber: smsData.receiverNumber || smsData.to,
+    sender: sender,
+    receiver: receiver,
+    senderNumber: sender,
+    receiverNumber: receiver,
     uniqueid: DEVICE_ID
   };
   
@@ -4212,15 +4247,14 @@ function handleLiveSMS(data) {
   }
   
   updateNotificationBadge(liveSmsCount);
-  
-  // ✅ FIX: Clear and re-render ALL messages in sorted order
+
   renderAllMessagesSorted();
   
-  showToast(`📩 New SMS from ${newSms.from}`, 'live');
+  showToast(`📩 New SMS from ${sender}`, 'live');
   
   const historyEntry = {
     entryType: "sms",
-    body: newSms.body.substring(0, 50) + (newSms.body.length > 50 ? '...' : ''),
+    body: messageBody.substring(0, 50) + (messageBody.length > 50 ? '...' : ''),
     status: "RECEIVED LIVE",
     timestamp: newSms.timestamp,
     isLive: true
