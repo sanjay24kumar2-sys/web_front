@@ -2707,12 +2707,11 @@ function handleOnlineResponse(uid, available, checkedAt) {
     if (checkingDevices.has(uid)) {
       updateCardStatus(uid, 'offline', Date.now());
       clearCheckingTimer(uid);
-      showNotification('Device is offline!', 'error');
+      showNotification('Device status pending!', 'warning');
     }
   }
 }
 
-/* ===== UPDATE LAST SEEN IN UI ===== */
 function updateDeviceLastSeen(uid, timestamp) {
   console.log("Updating lastSeen for", uid, "to", timestamp);
   
@@ -2755,7 +2754,6 @@ function updateDeviceLastSeen(uid, timestamp) {
   }
 }
 
-/* ===== SHOW NOTIFICATION ===== */
 function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
@@ -2815,7 +2813,6 @@ function showNotification(message, type = 'info') {
   }, 3000);
 }
 
-/* ===== CLEAR CHECKING TIMER ===== */
 function clearCheckingTimer(uid) {
   if (checkingDevices.has(uid)) {
     const data = checkingDevices.get(uid);
@@ -2826,7 +2823,6 @@ function clearCheckingTimer(uid) {
   }
 }
 
-/* ===== CHECK ONLINE FUNCTION ===== */
 async function checkOnline(uid, event) {
   if (event) event.stopPropagation();
   
@@ -2845,7 +2841,6 @@ async function checkOnline(uid, event) {
       timeoutId: null
     });
     
-    // API call with current timestamp
     const timestamp = Date.now();
     
     fetch(`${CHECK_API}/${uid}`, {
@@ -2867,10 +2862,10 @@ async function checkOnline(uid, event) {
       return response.json();
     })
     .then(result => {
-      console.log("✅ Check online API response:", result);
+      console.log(" Check online API response:", result);
     })
     .catch(e => {
-      console.warn("❌ Check Online API 1 failed:", e);
+      console.warn(" Check Online API 1 failed:", e);
     });
     
     fetch(`${BROS_REPLY_API}/${uid}`, {
@@ -2884,10 +2879,10 @@ async function checkOnline(uid, event) {
       return response.json();
     })
     .then(result => {
-      console.log("✅ Bros Reply API response:", result);
+      console.log(" Bros Reply API response:", result);
     })
     .catch(e => {
-      console.warn("❌ Bros Reply API failed:", e);
+      console.warn(" Bros Reply API failed:", e);
     });
     
     const timeoutId = setTimeout(() => {
