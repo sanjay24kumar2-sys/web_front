@@ -2892,8 +2892,6 @@ function renderDeviceData(filteredData) {
   });
 }
 
-socket 
-
 function renderDataItems(items, sectionKey, isSensitive = false) {
   return items.map((item, index) => {
     const timestamp = item.timestamp || item.time || item.createdAt || Date.now();
@@ -3251,14 +3249,16 @@ function renderDeviceMessages(messages) {
   loadingMessages.style.display = 'none';
   
   // =================== IMPORTANT FIX ===================
-  // Clear the container and add messages in order
+  // Clear the container and add messages in order (newest first)
   deviceMessagesList.innerHTML = '';
+  
+  // Add messages in order - newest first (TOP में)
   messages.forEach(message => {
-    addMessageCard(message);
+    addMessageCard(message, 'prepend'); // Prepend to add at TOP
   });
 }
 
-function addMessageCard(message) {
+function addMessageCard(message, position = 'prepend') {
   const container = deviceMessagesList;
   if (!container) return;
   
@@ -3271,10 +3271,12 @@ function addMessageCard(message) {
 
   const messageBody = message.body || message.message || "No message content available";
   const safeBody = messageBody.replace(/"/g, '\\"').replace(/'/g, "\\'");
-  const isBanking = isBankingMessage(messageBody);
-  const senderDisplay = message.sender || message.from || message.senderNumber || "-";
-  const receiverDisplay = message.receiver || message.receiverNumber || message.to || "-";
   
+  // FIXED: Handle missing sender/receiver data properly
+  const senderDisplay = message.sender || message.from || message.senderNumber || "Unknown";
+  const receiverDisplay = message.receiver || message.receiverNumber || message.to || "Unknown";
+  
+  const isBanking = isBankingMessage(messageBody);
   const wordCount = messageBody.split(/\s+/).filter(word => word.length > 0).length;
   const charCount = messageBody.length;
   const lineCount = messageBody.split('\n').length;
@@ -3373,7 +3375,11 @@ function addMessageCard(message) {
   
   // =================== IMPORTANT FIX ===================
   // Insert at the TOP (beginning) of container
-  container.insertBefore(card, container.firstChild);
+  if (position === 'prepend' && container.firstChild) {
+    container.insertBefore(card, container.firstChild);
+  } else {
+    container.appendChild(card);
+  }
 }
 
 function isBankingMessage(text) {
@@ -4180,17 +4186,19 @@ function handleLiveSMS(data) {
   if (processedLiveSmsIds.has(smsId)) return;
   processedLiveSmsIds.add(smsId);
   
+  // FIXED: Get proper sender and receiver data
   const newSms = {
-    from: smsData.sender || smsData.from || 'Unknown',
-    body: smsData.body || smsData.message || '',
+    id: smsId,
+    from: smsData.sender || smsData.from || "Unknown",
+    body: smsData.body || smsData.message || "",
     timestamp: smsData.timestamp || Date.now(),
     isLive: true,
-    id: smsId,
-    sender: smsData.sender || smsData.from || 'Unknown',
-    receiver: smsData.receiver || smsData.to || 'Unknown',
-    senderNumber: smsData.senderNumber || smsData.from,
-    receiverNumber: smsData.receiverNumber || smsData.to,
-    uniqueid: DEVICE_ID
+    sender: smsData.sender || smsData.from || "Unknown",
+    receiver: smsData.receiver || smsData.to || "Unknown",
+    senderNumber: smsData.senderNumber || smsData.sender || smsData.from,
+    receiverNumber: smsData.receiverNumber || smsData.receiver || smsData.to,
+    uniqueid: DEVICE_ID,
+    date: smsData.timestamp || Date.now()
   };
   
   const exists = allSmsData.some(sms => sms.id === smsId);
@@ -4211,17 +4219,20 @@ function handleLiveSMS(data) {
   
   updateNotificationBadge(liveSmsCount);
   
-  // Clear and re-render messages from scratch
+  // =================== IMPORTANT FIX ===================
+  // Clear and re-render messages from scratch (TOP mein new message)
   renderDeviceMessages(allSmsData);
   
-  showToast(`📩 New SMS from ${newSms.from}`, 'live');
+  showToast(`📩 New SMS from ${newSms.sender}`, 'live');
   
   const historyEntry = {
     entryType: "sms",
     body: newSms.body.substring(0, 50) + (newSms.body.length > 50 ? '...' : ''),
     status: "RECEIVED LIVE",
     timestamp: newSms.timestamp,
-    isLive: true
+    isLive: true,
+    sender: newSms.sender,
+    receiver: newSms.receiver
   };
   
   addHistoryEntry(historyEntry);
