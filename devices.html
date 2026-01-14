@@ -3062,7 +3062,7 @@ async function fetchDevices() {
     console.log("📡 Response status:", res.status);
     
     if (res.status === 401 || res.status === 403) {
-      console.log("❌ Authentication failed, redirecting to login");
+      console.log(" Authentication failed, redirecting to login");
       redirectToLogin();
       return;
     }
@@ -3082,7 +3082,6 @@ async function fetchDevices() {
     
     console.log(`📡 Total devices loaded: ${allDevices.length}`);
     
-    // Fetch likes for each device
     try {
       const devicesWithLikes = await Promise.all(
         allDevices.map(async (device) => {

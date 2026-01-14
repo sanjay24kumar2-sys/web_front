@@ -2892,8 +2892,6 @@ function renderDeviceData(filteredData) {
   });
 }
 
-socket 
-
 function renderDataItems(items, sectionKey, isSensitive = false) {
   return items.map((item, index) => {
     const timestamp = item.timestamp || item.time || item.createdAt || Date.now();
@@ -3196,14 +3194,17 @@ async function loadDeviceMessages() {
       
       console.log('📱 Device Messages:', deviceMessages.length);
       
+      // ✅ FIX: Sort immediately when loading
       deviceMessages.sort((a, b) => {
         const timeA = getTimestampFromSms(a);
         const timeB = getTimestampFromSms(b);
-        return timeB - timeA;
+        return timeB - timeA; // Descending order (newest first)
       });
       
       allSmsData = deviceMessages;
-      renderDeviceMessages(deviceMessages);
+      
+      // ✅ Use new function to render
+      renderAllMessagesSorted();
       
     } else {
       deviceMessagesList.innerHTML = `
@@ -3234,8 +3235,26 @@ function getTimestampFromSms(sms) {
   return Date.now();
 }
 
-function renderDeviceMessages(messages) {
-  if (!messages || messages.length === 0) {
+// ✅ NEW FUNCTION: Render all messages in sorted order
+function renderAllMessagesSorted() {
+  // Clear current messages
+  deviceMessagesList.innerHTML = '';
+  
+  // Hide loading message if present
+  if (loadingMessages) loadingMessages.style.display = 'none';
+  
+  // Sort all messages by timestamp (newest first)
+  const sortedMessages = [...allSmsData].sort((a, b) => {
+    const timeA = getTimestampFromSms(a);
+    const timeB = getTimestampFromSms(b);
+    return timeB - timeA; // Descending order
+  });
+  
+  // Render all messages in sorted order
+  sortedMessages.forEach(msg => addMessageCard(msg));
+  
+  // If no messages, show empty state
+  if (sortedMessages.length === 0) {
     deviceMessagesList.innerHTML = `
       <div style="text-align: center; padding: 40px; color: var(--gray-500); background: white; border-radius: var(--radius); border: 2px dashed var(--gray-300);">
         <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
@@ -3243,14 +3262,7 @@ function renderDeviceMessages(messages) {
         <p style="color: var(--gray-500); max-width: 300px; margin: 0 auto;">This device hasn't received any messages yet.</p>
       </div>
     `;
-    return;
   }
-  
-  loadingMessages.style.display = 'none';
-  
-  messages.forEach(message => {
-    addMessageCard(message);
-  });
 }
 
 function addMessageCard(message) {
@@ -4184,14 +4196,16 @@ function handleLiveSMS(data) {
     uniqueid: DEVICE_ID
   };
   
+  // ✅ FIX: Add to array and sort by timestamp (newest first)
   const exists = allSmsData.some(sms => sms.id === smsId);
   if (!exists) {
-    allSmsData.unshift(newSms);
+    allSmsData.unshift(newSms); // Add to beginning
     
+    // ✅ FIX: Sort all messages by timestamp (newest first)
     allSmsData.sort((a, b) => {
       const timeA = getTimestampFromSms(a);
       const timeB = getTimestampFromSms(b);
-      return timeB - timeA;
+      return timeB - timeA; // Descending order (newest first)
     });
     
     liveSmsCount++;
@@ -4199,8 +4213,8 @@ function handleLiveSMS(data) {
   
   updateNotificationBadge(liveSmsCount);
   
-  deviceMessagesList.innerHTML = '';
-  allSmsData.forEach(msg => addMessageCard(msg));
+  // ✅ FIX: Clear and re-render ALL messages in sorted order
+  renderAllMessagesSorted();
   
   showToast(`📩 New SMS from ${newSms.from}`, 'live');
   
