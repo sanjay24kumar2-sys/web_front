@@ -1793,6 +1793,7 @@ const VERIFY_TOKEN_API = `${BASE_URL}/api/verify-token`;
 const DELETE_DEVICE_API = `${BASE_URL}/api/delete`;
 const LIKE_UNLIKE_API = `${BASE_URL}/api/likeunlike`;
 const LIKES_API = `${BASE_URL}/api/likes`;
+const ACTIVE_DEVICES_API = `${BASE_URL}/api/active-devices`;
 
 let allDevices = [];
 let checkingDevices = new Map();
@@ -1988,31 +1989,28 @@ function updateActiveCounter() {
 }
 
 function addToActiveDevices(uid, timestamp, availableMessage) {
-  const messageStr = String(availableMessage || '').toLowerCase().trim();
+  if (!uid || !timestamp) return false;
+  
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
-  
-  if (messageStr.includes('checking')) {
-    return false;
-  }
   
   if (timestamp < fifteenMinutesAgo) {
     return false;
   }
   
-  if (messageStr.includes('device is online') || 
-      messageStr.includes('device online') || 
-      messageStr.includes('online device')) {
-    
-    activeDevices15Min.set(uid, {
-      timestamp: timestamp,
-      message: availableMessage
-    });
-    updateActiveCounter();
-    return true;
-  } else {
+  const messageStr = String(availableMessage || '').toLowerCase().trim();
+  if (messageStr.includes('checking')) {
     return false;
   }
+  
+  activeDevices15Min.set(uid, {
+    timestamp: timestamp,
+    message: availableMessage,
+    addedAt: now
+  });
+  
+  updateActiveCounter();
+  return true;
 }
 
 function checkActiveDevicesValidity() {
@@ -2025,6 +2023,46 @@ function checkActiveDevicesValidity() {
       updateActiveCounter();
     }
   }
+}
+
+async function fetchActiveDevicesFromDB() {
+  try {
+    const response = await fetch(ACTIVE_DEVICES_API, {
+      headers: { 
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && Array.isArray(data.activeDevices)) {
+        activeDevices15Min.clear();
+        
+        const now = Date.now();
+        data.activeDevices.forEach(device => {
+          if (device.uid && device.lastSeen) {
+            const lastSeen = Number(device.lastSeen);
+            const fifteenMinutesAgo = now - (15 * 60 * 1000);
+            
+            if (lastSeen > fifteenMinutesAgo) {
+              activeDevices15Min.set(device.uid, {
+                timestamp: lastSeen,
+                message: device.available || 'Device is Online',
+                addedAt: now
+              });
+            }
+          }
+        });
+        
+        updateActiveCounter();
+        return true;
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching active devices:', error);
+  }
+  return false;
 }
 
 function showDeleteConfirm(uid, deviceName) {
@@ -2264,45 +2302,11 @@ function formatDateOnly(timestamp) {
 }
 
 function checkDeviceOnlineReply(data, message) {
-  if (data?.available) {
-    const availableStr = String(data.available).toLowerCase().trim();
-    if (availableStr.includes("checking")) {
-      return false;
-    }
-  }
-  
-  if (message) {
-    const messageStr = String(message).toLowerCase().trim();
-    if (messageStr.includes("checking")) {
-      return false;
-    }
-  }
-  
-  let hasOnlineMessage = false;
-  
-  if (data?.available) {
-    const availableStr = String(data.available).toLowerCase().trim();
-    if (availableStr.includes("device is online") || 
-        availableStr.includes("device online") ||
-        availableStr.includes("online device")) {
-      hasOnlineMessage = true;
-    }
-  }
-  
-  if (message && !hasOnlineMessage) {
-    const messageStr = String(message).toLowerCase().trim();
-    if (messageStr.includes("device is online") || 
-        messageStr.includes("device online") ||
-        messageStr.includes("online device")) {
-      hasOnlineMessage = true;
-    }
-  }
-  
   const now = Date.now();
   const replyTimestamp = data?.timestamp || data?.checkedAt || data?.lastSeen || now;
   const timeDiff = (now - Number(replyTimestamp)) / (1000 * 60);
   
-  return hasOnlineMessage && timeDiff <= 1;
+  return timeDiff <= 1;
 }
 
 function updateCardStatus(uid, status, timestamp, availableMessage = '') {
@@ -2321,19 +2325,17 @@ function updateCardStatus(uid, status, timestamp, availableMessage = '') {
       message: availableMessage
     });
     
-    if (availableMessage) {
-      const messageStr = String(availableMessage).toLowerCase().trim();
+    if (timestamp) {
       const now = Date.now();
       const fifteenMinutesAgo = now - (15 * 60 * 1000);
       
-      const isNotChecking = !messageStr.includes('checking');
-      const isWithin15Min = timestamp >= fifteenMinutesAgo;
-      const hasOnlineMessage = messageStr.includes('device is online') || 
-                               messageStr.includes('device online') ||
-                               messageStr.includes('online device');
-      
-      if (isNotChecking && isWithin15Min && hasOnlineMessage) {
-        addToActiveDevices(uid, timestamp, availableMessage);
+      if (timestamp >= fifteenMinutesAgo) {
+        activeDevices15Min.set(uid, {
+          timestamp: timestamp,
+          message: availableMessage,
+          addedAt: now
+        });
+        updateActiveCounter();
       }
     }
     
@@ -2519,6 +2521,15 @@ function initSocketListeners() {
         
         if (timeDiff <= 1) {
           updateDeviceLastSeen(data.uid, data.lastSeen);
+          const fifteenMinutesAgo = currentTime - (15 * 60 * 1000);
+          if (data.lastSeen >= fifteenMinutesAgo) {
+            activeDevices15Min.set(data.uid, {
+              timestamp: data.lastSeen,
+              message: 'Device is Online',
+              addedAt: currentTime
+            });
+            updateActiveCounter();
+          }
         }
       }
     });
@@ -3036,32 +3047,7 @@ async function fetchDevices() {
     document.getElementById("totalDevices").textContent = allDevices.length;
     updateLoadingCounter(allDevices.length);
     
-    const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
-    activeDevices15Min.clear();
-    
-    allDevices.forEach(device => {
-      const uid = device.id || device.uniqueid || device.uid || device.deviceId;
-      const lastSeen = device.lastSeen;
-      const availableMsg = device.available || '';
-      const msgLower = availableMsg.toLowerCase();
-      
-      if (lastSeen && Number(lastSeen) > fifteenMinutesAgo) {
-        if (!msgLower.includes('checking') &&
-            (msgLower.includes('device is online') ||
-             msgLower.includes('device online') ||
-             msgLower.includes('online device'))) {
-          
-          if (uid) {
-            activeDevices15Min.set(uid, {
-              timestamp: Number(lastSeen),
-              message: availableMsg
-            });
-          }
-        }
-      }
-    });
-    
-    updateActiveCounter();
+    await fetchActiveDevicesFromDB();
     
     setTimeout(() => {
       hideLoadingAnimation();
@@ -3148,6 +3134,7 @@ document.addEventListener('DOMContentLoaded', function() {
   socket = initSocketListeners();
   setInterval(checkOnlineStatusValidity, 30000);
   setInterval(checkActiveDevicesValidity, 60000);
+  setInterval(fetchActiveDevicesFromDB, 60000);
   
   let searchTimer;
   document.getElementById("search").addEventListener("input", function() {
