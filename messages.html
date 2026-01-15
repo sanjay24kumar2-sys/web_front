@@ -1337,7 +1337,6 @@ body {
   </div>
 </main>
 
-
 <script type="module">
 const API_BASE = import.meta.env.VITE_API_BASE;
 
@@ -1695,12 +1694,6 @@ function handleNewSMS(data) {
   if (filterMessage(newMsg)) {
     displayedMessages.unshift(newMsg);
     
-    // Maintain the current page limit
-    const currentMaxMessages = currentPage * PAGE_SIZE;
-    if (displayedMessages.length > currentMaxMessages) {
-      displayedMessages = displayedMessages.slice(0, currentMaxMessages);
-    }
-    
     // Re-render the page
     renderCurrentPage();
     updatePaginationInfo();
@@ -1846,10 +1839,13 @@ function filterMessage(msg) {
   return true;
 }
 
-// Apply Filters
+// ✅ **FIXED: Apply Filters - CORRECT VERSION**
 function applyFilters() {
   searchQuery = document.getElementById("search").value.toLowerCase();
   filterValue = document.getElementById("filter").value;
+  
+  console.log(`🔍 Applying filters - Search: "${searchQuery}", Filter: "${filterValue}"`);
+  console.log(`📊 Total messages before filter: ${allMessages.length}`);
   
   // Filter all messages
   displayedMessages = allMessages.filter(msg => {
@@ -1890,6 +1886,9 @@ function applyFilters() {
     return true;
   });
   
+  console.log(`✅ Filtered messages: ${displayedMessages.length} out of ${allMessages.length}`);
+  
+  // ✅ **FIX: Reset currentPage when applying filters**
   currentPage = 1;
   renderCurrentPage();
   updatePaginationInfo();
@@ -1898,7 +1897,7 @@ function applyFilters() {
   setTimeout(saveCurrentState, 100);
 }
 
-// Render Messages
+// ✅ **FIXED: Render Current Page - CORRECT VERSION**
 function renderCurrentPage() {
   const container = document.getElementById("messagesList");
   const paginationDiv = document.getElementById("paginationContainer");
@@ -1911,6 +1910,8 @@ function renderCurrentPage() {
   // Calculate how many messages to show
   const endIndex = Math.min(currentPage * PAGE_SIZE, displayedMessages.length);
   const messagesToShow = displayedMessages.slice(0, endIndex);
+  
+  console.log(`🔄 Rendering page ${currentPage} - Showing ${messagesToShow.length} of ${displayedMessages.length} filtered messages`);
   
   if (messagesToShow.length === 0) {
     container.innerHTML = `
@@ -1935,12 +1936,15 @@ function renderCurrentPage() {
   }
   
   if (loadMoreBtn) {
-    if (displayedMessages.length > messagesToShow.length) {
+    // ✅ **FIX: Correct logic for load more button**
+    if (displayedMessages.length > endIndex) {
       loadMoreBtn.disabled = false;
       loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Load More Messages';
+      console.log(`✅ Load More button ENABLED - More messages available (${displayedMessages.length} > ${endIndex})`);
     } else {
       loadMoreBtn.disabled = true;
       loadMoreBtn.innerHTML = '<i class="fas fa-check-circle"></i> All Messages Loaded';
+      console.log(`✅ Load More button DISABLED - All messages loaded (${displayedMessages.length} = ${endIndex})`);
     }
   }
   
@@ -2087,15 +2091,26 @@ function addMessageCard(message) {
   container.appendChild(card);
 }
 
-// Load More Messages
+// ✅ **FIXED: Load More Messages - CORRECT VERSION**
 function loadMoreMessages() {
-  if (isLoading || displayedMessages.length <= currentPage * PAGE_SIZE) return;
+  if (isLoading) {
+    console.log('⏭️ Cannot load more - Already loading');
+    return;
+  }
+  
+  // ✅ **FIX: Correct condition check**
+  const endIndex = currentPage * PAGE_SIZE;
+  if (displayedMessages.length <= endIndex) {
+    console.log(`⏭️ Cannot load more - Displayed: ${displayedMessages.length}, Current End Index: ${endIndex}`);
+    return;
+  }
   
   isLoading = true;
   const loadMoreBtn = document.getElementById('loadMoreBtn');
   if (loadMoreBtn) {
     loadMoreBtn.disabled = true;
     loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+    console.log(`🔄 Loading more messages... Current page: ${currentPage}`);
   }
   
   setTimeout(() => {
@@ -2107,18 +2122,24 @@ function loadMoreMessages() {
       const endIndex = Math.min(currentPage * PAGE_SIZE, displayedMessages.length);
       const messagesToShow = displayedMessages.slice(startIndex, endIndex);
       
+      console.log(`📥 Loading messages ${startIndex + 1} to ${endIndex} of ${displayedMessages.length}`);
+      
       messagesToShow.forEach(message => {
         addMessageCard(message);
       });
     }
     
     if (loadMoreBtn) {
-      loadMoreBtn.disabled = false;
-      loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Load More Messages';
-      
-      if (displayedMessages.length <= currentPage * PAGE_SIZE) {
+      // ✅ **FIX: Correct logic to re-enable button**
+      const nextEndIndex = currentPage * PAGE_SIZE;
+      if (displayedMessages.length > nextEndIndex) {
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Load More Messages';
+        console.log(`✅ Load More button re-enabled (${displayedMessages.length} > ${nextEndIndex})`);
+      } else {
         loadMoreBtn.disabled = true;
         loadMoreBtn.innerHTML = '<i class="fas fa-check-circle"></i> All Messages Loaded';
+        console.log(`✅ All messages loaded, button disabled (${displayedMessages.length} <= ${nextEndIndex})`);
       }
     }
     
@@ -2138,11 +2159,12 @@ function updatePaginationInfo() {
       pageInfo.textContent = 'No messages found';
     } else {
       pageInfo.textContent = `Showing ${currentShowing} of ${totalDisplayed} messages`;
+      console.log(`📊 Pagination: Showing ${currentShowing} of ${totalDisplayed} messages`);
     }
   }
 }
 
-/* ===== FETCH MESSAGES WITH TOKEN ===== */
+/* ===== ✅ FIXED: FETCH MESSAGES WITH TOKEN - CORRECT VERSION ===== */
 async function fetchAllMessages() {
   // Check authentication first
   if (!checkAuth()) {
@@ -2194,7 +2216,8 @@ async function fetchAllMessages() {
     
     const data = await response.json();
     
-    console.log('📊 Database response:', data);
+    console.log('📊 Database response received');
+    console.log(`📊 Total messages from API: ${data.data?.length || 0}`);
     
     if (data.success && data.data) {
       // Process all messages from database
@@ -2228,20 +2251,26 @@ async function fetchAllMessages() {
       
       // Sort messages by timestamp (newest first)
       allMessages = data.data.sort((a, b) => {
-        const timeA = new Date(a.timestamp || a.createdAt || a.time).getTime();
-        const timeB = new Date(b.timestamp || b.createdAt || b.time).getTime();
-        return timeB - timeA;
+        const timeA = new Date(a.timestamp || a.createdAt || a.time || Date.now()).getTime();
+        const timeB = new Date(b.timestamp || b.createdAt || b.time || Date.now()).getTime();
+        return timeB - timeA; // Newest first
       });
       
-      hasMoreMessages = allMessages.length > 0;
+      console.log(`✅ Total messages loaded: ${allMessages.length}`);
+      console.log(`✅ First message timestamp: ${allMessages[0] ? formatDate(allMessages[0].timestamp) : 'None'}`);
+      console.log(`✅ Last message timestamp: ${allMessages[allMessages.length - 1] ? formatDate(allMessages[allMessages.length - 1].timestamp) : 'None'}`);
+      
+      // ✅ **FIX: Reset currentPage to 1 when loading fresh data**
+      currentPage = 1;
       
       // Update total count
       const totalMessagesEl = document.getElementById("totalMessages");
       if (totalMessagesEl) {
         totalMessagesEl.textContent = allMessages.length;
+        console.log(`✅ Total count updated: ${allMessages.length}`);
       }
       
-      // Apply filters (this will handle state restoration)
+      // ✅ **FIX: Apply filters which will render the page**
       applyFilters();
       
     } else {
@@ -2253,6 +2282,21 @@ async function fetchAllMessages() {
     }
     
     updatePaginationInfo();
+    
+    // ✅ **FIX: Force show pagination if there are more messages**
+    const paginationDiv = document.getElementById("paginationContainer");
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    
+    if (displayedMessages.length > PAGE_SIZE) {
+      if (paginationDiv) {
+        paginationDiv.style.display = 'flex';
+      }
+      if (loadMoreBtn) {
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Load More Messages';
+      }
+      console.log(`✅ Pagination enabled - Filtered: ${displayedMessages.length}, Page Size: ${PAGE_SIZE}`);
+    }
     
     // Restore scroll position after rendering (if not complete refresh)
     if (!isCompleteRefresh() && scrollPosition > 0) {
@@ -2350,12 +2394,14 @@ document.addEventListener('DOMContentLoaded', function() {
   if (loadMoreBtn) {
     loadMoreBtn.addEventListener("click", loadMoreMessages);
   }
+  
   fetchAllMessages();
   
   initSocket();
   
   setInterval(saveCurrentState, 5000);
 });
+
 function refreshMessages() {
   const loader = document.getElementById("fullscreenLoader");
   if (loader) {
