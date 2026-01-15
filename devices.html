@@ -2295,9 +2295,9 @@ function formatDateOnly(timestamp) {
   });
 }
 
-/* ===== CHECK IF DEVICE IS ONLINE (CONFIRMED REPLY) ===== */
+/* ===== CHECK IF DEVICE IS ONLINE ===== */
 function checkDeviceOnlineReply(data, message) {
-  // Check message content for "online" keywords
+  // Check message content
   let isOnlineMessage = false;
   
   if (data?.available) {
@@ -2323,7 +2323,7 @@ function checkDeviceOnlineReply(data, message) {
   const replyTimestamp = data?.timestamp || data?.checkedAt || data?.lastSeen || now;
   const timeDiff = (now - Number(replyTimestamp)) / (1000 * 60); // Convert to minutes
   
-  // Only return true if both conditions are met: has online message AND is within 1 minute
+  // Only return true if both conditions are met
   return isOnlineMessage && timeDiff <= 1;
 }
 
@@ -2344,8 +2344,8 @@ function updateCardStatus(uid, status, timestamp) {
       button: button
     });
     
-    // ✅ NOTE: DO NOT add to 15 min active devices here
-    // Active badge will be updated ONLY in handleOnlineResponse when confirmed
+    // Add to 15 min active devices
+    addToActiveDevices(uid, timestamp);
     
     button.classList.add('online');
     button.innerHTML = '<i class="fas fa-wifi"></i> ONLINE';
@@ -2540,7 +2540,7 @@ function initSocketListeners() {
       }
     });
     
-    // Only update lastSeen if it's recent - BUT DO NOT ADD TO ACTIVE BADGE
+    // Only update lastSeen if it's recent
     socket.on("deviceLastSeenUpdate", (data) => {
       console.log("📡 deviceLastSeenUpdate received:", data);
       if (data && data.uid && data.lastSeen) {
@@ -2549,7 +2549,6 @@ function initSocketListeners() {
         
         if (timeDiff <= 1) {
           updateDeviceLastSeen(data.uid, data.lastSeen);
-          // ❌ DO NOT add to activeDevices15Min here - only for confirmed replies
         }
       }
     });
@@ -2688,7 +2687,7 @@ function handleOnlineResponse(uid, available, checkedAt) {
   }, available);
   
   if (isOnlineReply) {
-    console.log("✅ Valid online reply (within 1 minute) - ADDING TO ACTIVE BADGE");
+    console.log("✅ Valid online reply (within 1 minute)");
     
     device.online = true;
     device.status = 'online';
@@ -2700,13 +2699,10 @@ function handleOnlineResponse(uid, available, checkedAt) {
     updateCardStatus(uid, 'online', checkedAt);
     showNotification('Device is online!', 'success');
     
-    // ✅ ONLY PLACE WHERE ACTIVE BADGE IS UPDATED
-    addToActiveDevices(uid, checkedAt);
-    
     updateDeviceLastSeen(uid, checkedAt);
     
   } else {
-    console.log("❌ Invalid or old reply - NOT adding to active badge");
+    console.log("❌ Invalid or old reply");
     
     if (checkingDevices.has(uid)) {
       updateCardStatus(uid, 'offline', Date.now());
@@ -3122,8 +3118,16 @@ async function fetchDevices() {
     updateLoadingCounter(allDevices.length);
     
     // Initialize active devices from existing data
-    // ❌ REMOVED: We don't initialize from existing data - only from confirmed replies
-    // Active badge should only show devices that have confirmed online replies
+    const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
+    allDevices.forEach(device => {
+      if (device.lastSeen && Number(device.lastSeen) > fifteenMinutesAgo) {
+        const uid = device.id || device.uniqueid || device.uid || device.deviceId;
+        if (uid) {
+          activeDevices15Min.set(uid, Number(device.lastSeen));
+        }
+      }
+    });
+    updateActiveCounter();
     
     setTimeout(() => {
       hideLoadingAnimation();
