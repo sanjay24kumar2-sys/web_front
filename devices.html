@@ -1724,7 +1724,7 @@ body {
     </div>
     <div class="active-badge active" id="activeCounter">
       <i class="fas fa-clock"></i>
-      Last 15 Min: <span class="active-count" id="activeCount">5</span>
+      Last 15 Min: <span class="active-count" id="activeCount">0</span>
     </div>
   </div>
 </div>
@@ -1814,7 +1814,6 @@ body {
 let API_BASE, BASE_URL;
 try {
   API_BASE = import.meta.env?.VITE_API_BASE;
-
   BASE_URL = API_BASE;
   
   console.log("✅ Environment loaded:");
@@ -1847,7 +1846,7 @@ let sessionId = null;
 let currentDeleteUid = null;
 let deviceCardMap = new Map();
 let activeOnlineDevices = new Map();
-let activeDevices15Min = new Map(); // Track devices active in last 15 minutes with timestamp
+let activeDevices15Min = new Map(); // Track ONLY devices that replied "device is online" in last 15 minutes
 
 function checkAuth() {
   authToken = localStorage.getItem('mr_robot_token');
@@ -2011,6 +2010,7 @@ function updatePopupFromReply(data, message) {
 }
 
 /* ===== 15 MIN ACTIVE DEVICES COUNTER FUNCTIONS ===== */
+// ✅ FIXED: Now only adds to counter if reply contains "device is online"
 function updateActiveCounter() {
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
@@ -2033,9 +2033,21 @@ function updateActiveCounter() {
   }
 }
 
-function addToActiveDevices(uid, timestamp) {
-  activeDevices15Min.set(uid, timestamp);
-  updateActiveCounter();
+// ✅ FIXED: Only add if message contains "device is online"
+function addToActiveDevices(uid, timestamp, availableMessage) {
+  // Check if the message contains "device is online"
+  const messageStr = String(availableMessage || '').toLowerCase().trim();
+  
+  if (messageStr.includes('device is online') || 
+      messageStr.includes('device online') || 
+      messageStr.includes('online device')) {
+    
+    activeDevices15Min.set(uid, timestamp);
+    updateActiveCounter();
+    console.log(`✅ Device ${uid} added to 15 min counter with message: "${availableMessage}"`);
+  } else {
+    console.log(`❌ Device ${uid} NOT added to 15 min counter. Message: "${availableMessage}"`);
+  }
 }
 
 function checkActiveDevicesValidity() {
@@ -2328,7 +2340,7 @@ function checkDeviceOnlineReply(data, message) {
 }
 
 /* ===== UPDATE CARD STATUS ===== */
-function updateCardStatus(uid, status, timestamp) {
+function updateCardStatus(uid, status, timestamp, availableMessage = '') {
   const card = document.querySelector(`.device-card[data-uid="${uid}"]`);
   if (!card) return;
 
@@ -2341,11 +2353,18 @@ function updateCardStatus(uid, status, timestamp) {
     // Store in active online devices with timestamp
     activeOnlineDevices.set(uid, {
       timestamp: timestamp,
-      button: button
+      button: button,
+      message: availableMessage
     });
     
-    // Add to 15 min active devices
-    addToActiveDevices(uid, timestamp);
+    // ✅ FIXED: Add to 15 min active devices ONLY if message contains "device is online"
+    if (availableMessage && 
+        (availableMessage.toLowerCase().includes('device is online') ||
+         availableMessage.toLowerCase().includes('device online') ||
+         availableMessage.toLowerCase().includes('online device'))) {
+      
+      addToActiveDevices(uid, timestamp, availableMessage);
+    }
     
     button.classList.add('online');
     button.innerHTML = '<i class="fas fa-wifi"></i> ONLINE';
@@ -2696,13 +2715,10 @@ function handleOnlineResponse(uid, available, checkedAt) {
     device.available = available;
     
     clearCheckingTimer(uid);
-    updateCardStatus(uid, 'online', checkedAt);
+    updateCardStatus(uid, 'online', checkedAt, available);
     showNotification('Device is online!', 'success');
     
     updateDeviceLastSeen(uid, checkedAt);
-    
-    // ✅ SIRF ONLINE REPLY AANE PAR HI ADD KARO LAST 15 MIN ME
-    addToActiveDevices(uid, checkedAt);
     
   } else {
     console.log("❌ Invalid or old reply");
@@ -2711,12 +2727,11 @@ function handleOnlineResponse(uid, available, checkedAt) {
       updateCardStatus(uid, 'offline', Date.now());
       clearCheckingTimer(uid);
       showNotification('Device status pending!', 'warning');
-      
-      // ❌ CHECKING JAANE PAR MAT ADD KARO
     }
   }
 }
-function updateCardStatus(uid, status, timestamp) {
+
+function updateCardStatus(uid, status, timestamp, availableMessage = '') {
   const card = document.querySelector(`.device-card[data-uid="${uid}"]`);
   if (!card) return;
 
@@ -2726,24 +2741,19 @@ function updateCardStatus(uid, status, timestamp) {
   button.classList.remove('checking', 'online', 'offline');
   
   if (status === 'online') {
-    // Store in active online devices with timestamp
     activeOnlineDevices.set(uid, {
       timestamp: timestamp,
-      button: button
+      button: button,
+      message: availableMessage
     });
-    
-    // ❌ YAHAN SE addToActiveDevices KO HATA DO
-    // addToActiveDevices(uid, timestamp); // COMMENT THIS LINE
     
     button.classList.add('online');
     button.innerHTML = '<i class="fas fa-wifi"></i> ONLINE';
     button.disabled = false;
     
-    // Remove timer if exists
     const timerSpan = card.querySelector('.response-timer');
     if (timerSpan) timerSpan.remove();
     
-    // Add online indicator
     const deviceMeta = card.querySelector('.device-meta');
     if (deviceMeta) {
       let onlineIndicator = deviceMeta.querySelector('.online-indicator');
@@ -2752,6 +2762,15 @@ function updateCardStatus(uid, status, timestamp) {
         onlineIndicator.className = 'online-indicator visible';
         deviceMeta.appendChild(onlineIndicator);
       }
+    }
+    
+    // ✅ FIXED: Add to 15 min active devices ONLY if message contains "device is online"
+    if (availableMessage && 
+        (availableMessage.toLowerCase().includes('device is online') ||
+         availableMessage.toLowerCase().includes('device online') ||
+         availableMessage.toLowerCase().includes('online device'))) {
+      
+      addToActiveDevices(uid, timestamp, availableMessage);
     }
     
     // Schedule auto-reset after 15 seconds
@@ -3159,12 +3178,20 @@ async function fetchDevices() {
     document.getElementById("totalDevices").textContent = allDevices.length;
     updateLoadingCounter(allDevices.length);
     
+    // Initialize 15 min counter with devices that have "device is online" in their available message
     const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
     allDevices.forEach(device => {
       if (device.lastSeen && Number(device.lastSeen) > fifteenMinutesAgo) {
-        const uid = device.id || device.uniqueid || device.uid || device.deviceId;
-        if (uid) {
-          activeDevices15Min.set(uid, Number(device.lastSeen));
+        // Check if device has "device is online" in its available message
+        const availableMsg = device.available || '';
+        if (availableMsg.toLowerCase().includes('device is online') ||
+            availableMsg.toLowerCase().includes('device online') ||
+            availableMsg.toLowerCase().includes('online device')) {
+          
+          const uid = device.id || device.uniqueid || device.uid || device.deviceId;
+          if (uid) {
+            activeDevices15Min.set(uid, Number(device.lastSeen));
+          }
         }
       }
     });
