@@ -3221,12 +3221,13 @@ async function loadDeviceMessages() {
       
       console.log('📱 Device Messages:', deviceMessages.length);
       
-      // ✅ FIXED: Always sort by timestamp (latest first)
-      allSmsData = deviceMessages.sort((a, b) => {
+      deviceMessages.sort((a, b) => {
         const timeA = getTimestampFromSms(a);
         const timeB = getTimestampFromSms(b);
         return timeB - timeA; // Descending order (newest first)
       });
+      
+      allSmsData = deviceMessages;
       
       renderAllMessagesSorted();
       
@@ -3259,7 +3260,7 @@ function getTimestampFromSms(sms) {
   return Date.now();
 }
 
-// ✅ NEW FUNCTION: Render all messages in sorted order (FIXED)
+// ✅ NEW FUNCTION: Render all messages in sorted order
 function renderAllMessagesSorted() {
   // Clear current messages
   deviceMessagesList.innerHTML = '';
@@ -3267,11 +3268,11 @@ function renderAllMessagesSorted() {
   // Hide loading message if present
   if (loadingMessages) loadingMessages.style.display = 'none';
   
-  // ✅ FIXED: Always sort by timestamp before rendering
+  // Sort all messages by timestamp (newest first)
   const sortedMessages = [...allSmsData].sort((a, b) => {
     const timeA = getTimestampFromSms(a);
     const timeB = getTimestampFromSms(b);
-    return timeB - timeA; // Descending order (newest first)
+    return timeB - timeA; // Descending order
   });
   
   // Render all messages in sorted order
@@ -3402,8 +3403,7 @@ function addMessageCard(message) {
     });
   }
   
-  // ✅ FIXED: Prepend new message at the top
-  container.prepend(card);
+  container.appendChild(card);
 }
 
 function isBankingMessage(text) {
@@ -4252,14 +4252,12 @@ function handleLiveSMS(data) {
 
   const exists = allSmsData.some(sms => sms.id === smsId);
   if (!exists) {
-    // ✅ FIXED: Insert at beginning of array (top position)
     allSmsData.unshift(newSms); 
     
-    // ✅ FIXED: Maintain sorting by timestamp
     allSmsData.sort((a, b) => {
       const timeA = getTimestampFromSms(a);
       const timeB = getTimestampFromSms(b);
-      return timeB - timeA; // Descending order (newest first)
+      return timeB - timeA;
     });
     
     liveSmsCount++;
@@ -4267,7 +4265,6 @@ function handleLiveSMS(data) {
   
   updateNotificationBadge(liveSmsCount);
 
-  // ✅ FIXED: Re-render all messages with proper sorting
   renderAllMessagesSorted();
   
   showToast(`📩 New SMS from ${sender}`, 'live');
