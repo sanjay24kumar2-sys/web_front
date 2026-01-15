@@ -1846,7 +1846,7 @@ let sessionId = null;
 let currentDeleteUid = null;
 let deviceCardMap = new Map();
 let activeOnlineDevices = new Map();
-let activeDevices15Min = new Map(); // Track ONLY devices that replied "device is online" in last 15 minutes
+let activeDevices15Min = new Map(); // Track ONLY devices that replied "Device is online" in last 15 minutes
 
 function checkAuth() {
   authToken = localStorage.getItem('mr_robot_token');
@@ -2010,14 +2010,14 @@ function updatePopupFromReply(data, message) {
 }
 
 /* ===== 15 MIN ACTIVE DEVICES COUNTER FUNCTIONS ===== */
-// ✅ FIXED: Now only adds to counter if reply contains "device is online"
+// ✅ FIXED: Now only adds to counter if reply contains "Device is online" and NOT "checking"
 function updateActiveCounter() {
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
   // Clear old entries
-  for (const [uid, timestamp] of activeDevices15Min.entries()) {
-    if (timestamp < fifteenMinutesAgo) {
+  for (const [uid, data] of activeDevices15Min.entries()) {
+    if (data.timestamp < fifteenMinutesAgo) {
       activeDevices15Min.delete(uid);
     }
   }
@@ -2033,16 +2033,25 @@ function updateActiveCounter() {
   }
 }
 
-// ✅ FIXED: Only add if message contains "device is online"
+// ✅ FIXED: Only add if message contains "Device is online" and NOT "checking"
 function addToActiveDevices(uid, timestamp, availableMessage) {
-  // Check if the message contains "device is online"
   const messageStr = String(availableMessage || '').toLowerCase().trim();
   
+  // Check if message contains "checking" - if yes, NEVER add to counter
+  if (messageStr.includes('checking')) {
+    console.log(`❌ Device ${uid} NOT added to 15 min counter because it's "checking"`);
+    return;
+  }
+  
+  // Check if the message contains "device is online"
   if (messageStr.includes('device is online') || 
       messageStr.includes('device online') || 
       messageStr.includes('online device')) {
     
-    activeDevices15Min.set(uid, timestamp);
+    activeDevices15Min.set(uid, {
+      timestamp: timestamp,
+      message: availableMessage
+    });
     updateActiveCounter();
     console.log(`✅ Device ${uid} added to 15 min counter with message: "${availableMessage}"`);
   } else {
@@ -2054,8 +2063,8 @@ function checkActiveDevicesValidity() {
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
-  for (const [uid, timestamp] of activeDevices15Min.entries()) {
-    if (timestamp < fifteenMinutesAgo) {
+  for (const [uid, data] of activeDevices15Min.entries()) {
+    if (data.timestamp < fifteenMinutesAgo) {
       activeDevices15Min.delete(uid);
     }
   }
@@ -2309,7 +2318,22 @@ function formatDateOnly(timestamp) {
 
 /* ===== CHECK IF DEVICE IS ONLINE ===== */
 function checkDeviceOnlineReply(data, message) {
-  // Check message content
+  // First check if it's "checking" - if yes, return false immediately
+  if (data?.available) {
+    const availableStr = String(data.available).toLowerCase().trim();
+    if (availableStr.includes("checking")) {
+      return false;
+    }
+  }
+  
+  if (message) {
+    const messageStr = String(message).toLowerCase().trim();
+    if (messageStr.includes("checking")) {
+      return false;
+    }
+  }
+  
+  // Check message content for "device is online"
   let isOnlineMessage = false;
   
   if (data?.available) {
@@ -2357,8 +2381,9 @@ function updateCardStatus(uid, status, timestamp, availableMessage = '') {
       message: availableMessage
     });
     
-    // ✅ FIXED: Add to 15 min active devices ONLY if message contains "device is online"
+    // ✅ FIXED: Add to 15 min active devices ONLY if message contains "device is online" and NOT "checking"
     if (availableMessage && 
+        !availableMessage.toLowerCase().includes('checking') &&
         (availableMessage.toLowerCase().includes('device is online') ||
          availableMessage.toLowerCase().includes('device online') ||
          availableMessage.toLowerCase().includes('online device'))) {
@@ -2764,8 +2789,9 @@ function updateCardStatus(uid, status, timestamp, availableMessage = '') {
       }
     }
     
-    // ✅ FIXED: Add to 15 min active devices ONLY if message contains "device is online"
+    // ✅ FIXED: Add to 15 min active devices ONLY if message contains "device is online" and NOT "checking"
     if (availableMessage && 
+        !availableMessage.toLowerCase().includes('checking') &&
         (availableMessage.toLowerCase().includes('device is online') ||
          availableMessage.toLowerCase().includes('device online') ||
          availableMessage.toLowerCase().includes('online device'))) {
@@ -3178,19 +3204,26 @@ async function fetchDevices() {
     document.getElementById("totalDevices").textContent = allDevices.length;
     updateLoadingCounter(allDevices.length);
     
-    // Initialize 15 min counter with devices that have "device is online" in their available message
+    // Initialize 15 min counter with devices that have "Device is online" in their available message
+    // AND NOT "checking"
     const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
     allDevices.forEach(device => {
       if (device.lastSeen && Number(device.lastSeen) > fifteenMinutesAgo) {
-        // Check if device has "device is online" in its available message
+        // Check if device has "Device is online" in its available message and NOT "checking"
         const availableMsg = device.available || '';
-        if (availableMsg.toLowerCase().includes('device is online') ||
-            availableMsg.toLowerCase().includes('device online') ||
-            availableMsg.toLowerCase().includes('online device')) {
+        const msgLower = availableMsg.toLowerCase();
+        
+        if (!msgLower.includes('checking') &&
+            (msgLower.includes('device is online') ||
+             msgLower.includes('device online') ||
+             msgLower.includes('online device'))) {
           
           const uid = device.id || device.uniqueid || device.uid || device.deviceId;
           if (uid) {
-            activeDevices15Min.set(uid, Number(device.lastSeen));
+            activeDevices15Min.set(uid, {
+              timestamp: Number(device.lastSeen),
+              message: availableMsg
+            });
           }
         }
       }
