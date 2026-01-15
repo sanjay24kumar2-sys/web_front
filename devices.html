@@ -1970,11 +1970,9 @@ function updateActiveCounter() {
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
-  let needsUpdate = false;
   for (const [uid, data] of activeDevices15Min.entries()) {
     if (data.timestamp < fifteenMinutesAgo) {
       activeDevices15Min.delete(uid);
-      needsUpdate = true;
     }
   }
   
@@ -2021,16 +2019,11 @@ function checkActiveDevicesValidity() {
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
-  let removedCount = 0;
   for (const [uid, data] of activeDevices15Min.entries()) {
     if (data.timestamp < fifteenMinutesAgo) {
       activeDevices15Min.delete(uid);
-      removedCount++;
+      updateActiveCounter();
     }
-  }
-  
-  if (removedCount > 0) {
-    updateActiveCounter();
   }
 }
 
@@ -3047,19 +3040,20 @@ async function fetchDevices() {
     activeDevices15Min.clear();
     
     allDevices.forEach(device => {
-      if (device.lastSeen && Number(device.lastSeen) > fifteenMinutesAgo) {
-        const availableMsg = device.available || '';
-        const msgLower = availableMsg.toLowerCase();
-        
+      const uid = device.id || device.uniqueid || device.uid || device.deviceId;
+      const lastSeen = device.lastSeen;
+      const availableMsg = device.available || '';
+      const msgLower = availableMsg.toLowerCase();
+      
+      if (lastSeen && Number(lastSeen) > fifteenMinutesAgo) {
         if (!msgLower.includes('checking') &&
             (msgLower.includes('device is online') ||
              msgLower.includes('device online') ||
              msgLower.includes('online device'))) {
           
-          const uid = device.id || device.uniqueid || device.uid || device.deviceId;
           if (uid) {
             activeDevices15Min.set(uid, {
-              timestamp: Number(device.lastSeen),
+              timestamp: Number(lastSeen),
               message: availableMsg
             });
           }
