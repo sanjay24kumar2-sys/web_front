@@ -2701,6 +2701,9 @@ function handleOnlineResponse(uid, available, checkedAt) {
     
     updateDeviceLastSeen(uid, checkedAt);
     
+    // ✅ SIRF ONLINE REPLY AANE PAR HI ADD KARO LAST 15 MIN ME
+    addToActiveDevices(uid, checkedAt);
+    
   } else {
     console.log("❌ Invalid or old reply");
     
@@ -2708,49 +2711,88 @@ function handleOnlineResponse(uid, available, checkedAt) {
       updateCardStatus(uid, 'offline', Date.now());
       clearCheckingTimer(uid);
       showNotification('Device status pending!', 'warning');
+      
+      // ❌ CHECKING JAANE PAR MAT ADD KARO
     }
   }
 }
-
-function updateDeviceLastSeen(uid, timestamp) {
-  console.log("Updating lastSeen for", uid, "to", timestamp);
-  
+function updateCardStatus(uid, status, timestamp) {
   const card = document.querySelector(`.device-card[data-uid="${uid}"]`);
-  if (!card) {
-    console.log("Card not found for uid:", uid);
-    return;
-  }
+  if (!card) return;
+
+  const button = card.querySelector('.check-online-btn');
+  if (!button) return;
   
-  const timeTextElement = card.querySelector('.time-text');
-  if (timeTextElement) {
-    const lastSeenFormatted = formatTime(timestamp);
-    const timeLabel = timeTextElement.querySelector('.time-label');
+  button.classList.remove('checking', 'online', 'offline');
+  
+  if (status === 'online') {
+    // Store in active online devices with timestamp
+    activeOnlineDevices.set(uid, {
+      timestamp: timestamp,
+      button: button
+    });
     
-    if (timeLabel && timeLabel.textContent.includes('Last Seen')) {
-      timeTextElement.innerHTML = `<span class="time-label">Last Seen:</span> ${lastSeenFormatted}`;
+    // ❌ YAHAN SE addToActiveDevices KO HATA DO
+    // addToActiveDevices(uid, timestamp); // COMMENT THIS LINE
+    
+    button.classList.add('online');
+    button.innerHTML = '<i class="fas fa-wifi"></i> ONLINE';
+    button.disabled = false;
+    
+    // Remove timer if exists
+    const timerSpan = card.querySelector('.response-timer');
+    if (timerSpan) timerSpan.remove();
+    
+    // Add online indicator
+    const deviceMeta = card.querySelector('.device-meta');
+    if (deviceMeta) {
+      let onlineIndicator = deviceMeta.querySelector('.online-indicator');
+      if (!onlineIndicator) {
+        onlineIndicator = document.createElement('span');
+        onlineIndicator.className = 'online-indicator visible';
+        deviceMeta.appendChild(onlineIndicator);
+      }
     }
-  }
-  
-  const device = allDevices.find(d => {
-    const deviceIdFields = [
-      d.id,
-      d.uniqueid,
-      d.deviceId,
-      d.uid,
-      d.uniqueId,
-      d.deviceID
-    ].filter(Boolean);
     
-    return deviceIdFields.some(id => 
-      id === uid || 
-      id?.toString() === uid?.toString() ||
-      id?.includes(uid) || 
-      uid?.includes(id)
-    );
-  });
-  
-  if (device) {
-    device.lastSeen = timestamp;
+    // Schedule auto-reset after 15 seconds
+    setTimeout(() => {
+      if (activeOnlineDevices.has(uid)) {
+        const onlineData = activeOnlineDevices.get(uid);
+        const currentTimeDiff = (Date.now() - Number(onlineData.timestamp)) / (1000 * 60);
+        
+        if (currentTimeDiff > 1) {
+          resetDeviceToOffline(uid);
+        }
+      }
+    }, 15000);
+    
+  } else if (status === 'offline') {
+    // Remove from active online devices
+    activeOnlineDevices.delete(uid);
+    
+    button.classList.add('offline');
+    button.innerHTML = '<i class="fas fa-times"></i> OFFLINE';
+    button.disabled = false;
+    
+    const timerSpan = card.querySelector('.response-timer');
+    if (timerSpan) timerSpan.remove();
+    
+    const onlineIndicator = card.querySelector('.online-indicator');
+    if (onlineIndicator) onlineIndicator.remove();
+    
+    // Auto-reset after 10 seconds
+    setTimeout(() => {
+      if (button.classList.contains('offline')) {
+        button.classList.remove('offline');
+        button.innerHTML = '<i class="fas fa-wifi"></i> CHECK ONLINE';
+      }
+    }, 10000);
+    
+  } else if (status === 'checking') {
+    button.classList.add('checking');
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> CHECKING...';
+    button.disabled = true;
+    
   }
 }
 
@@ -3117,7 +3159,6 @@ async function fetchDevices() {
     document.getElementById("totalDevices").textContent = allDevices.length;
     updateLoadingCounter(allDevices.length);
     
-    // Initialize active devices from existing data
     const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
     allDevices.forEach(device => {
       if (device.lastSeen && Number(device.lastSeen) > fifteenMinutesAgo) {
@@ -3159,7 +3200,6 @@ async function fetchDevices() {
   }
 }
 
-/* ===== RENDER LIST ===== */
 function renderList(searchQuery = '') {
   const q = searchQuery || document.getElementById("search").value.toLowerCase();
   const box = document.getElementById("devicesList");
@@ -3204,9 +3244,8 @@ function renderList(searchQuery = '') {
   });
 }
 
-/* ===== MAIN INITIALIZATION ===== */
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("✅ DOM Content Loaded");
+  console.log(" DOM Content Loaded");
   
   if (!checkAuth()) return;
   
