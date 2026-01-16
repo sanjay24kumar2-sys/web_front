@@ -1819,10 +1819,10 @@ body {
   </div>
 </div>
 
-<script>
-// Configuration - UPDATE THESE URLS AS PER YOUR SERVER
-let API_BASE = "http://localhost:3000"; // Change to your server URL
-let BASE_URL = API_BASE;
+
+<script type="module">
+
+const BASE_URL = import.meta.env.VITE_API_BASE;
 
 // ✅ API ENDPOINTS
 const DEVICE_API = `${BASE_URL}/api/devices`;
