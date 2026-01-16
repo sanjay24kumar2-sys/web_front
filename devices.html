@@ -565,15 +565,14 @@ body {
 
 .device-version {
   font-size: 11px;
-  color: var(--gray-600);
-  background: var(--gray-100);
-  padding: 2px 6px;
-  margin-right: 110px;
-  border-radius: 8px;
-  font-weight: 600;
-  border: 1px solid var(--gray-200);
+  color: white;
+  background-color: rgba(0, 110, 255, 0.8);
+  padding: 5px;
+  border-radius: 4px;
+  font-weight: bold;
   white-space: nowrap;
   flex-shrink: 0;
+  margin-right: 110px;
 }
 
 .device-meta {
@@ -1723,19 +1722,21 @@ body {
   <div class="header-inner">
     <div class="header-title">
       <span class="live">LIVE</span>
+      Devices Dashboard
     </div>
     
-   <div class="top-bar">
-  <div class="user-info">
-    <div class="device-count">
-      Total: <span id="totalDevices">--</span>
+    <div class="top-bar">
+      <div class="user-info">
+        <div class="device-count">
+          <i class="fas fa-mobile-alt"></i>
+          Total: <span id="totalDevices">0</span>
+        </div>
+        <div class="active-badge active" id="activeCounter">
+          <i class="fas fa-clock"></i>
+          Last 15 Min: <span class="active-count" id="activeCount">0</span>
+        </div>
+      </div>
     </div>
-    <div class="active-badge active" id="activeCounter">
-      <i class="fas fa-clock"></i>
-      Last 15 Min: <span class="active-count" id="activeCount">5</span>
-    </div>
-  </div>
-</div>
   </div>
 </div>
 
@@ -1744,38 +1745,38 @@ body {
     <div class="infinity-loop-content">
       <div class="infinity-text">
         <i class="fas fa-exclamation-circle"></i>
-      Welcome to our service!
-      </div>
-      <div class="infinity-text">
-        <i class="fas fa-exclamation-circle"></i>
         Welcome to our service!
       </div>
       <div class="infinity-text">
         <i class="fas fa-exclamation-circle"></i>
-      Welcome to our service!
+        Total Devices: <span id="totalDevicesMarquee">0</span>
       </div>
       <div class="infinity-text">
         <i class="fas fa-exclamation-circle"></i>
-   Welcome to our service!
+        Active in Last 15 Min: <span id="activeCountMarquee">0</span>
+      </div>
+      <div class="infinity-text">
+        <i class="fas fa-exclamation-circle"></i>
+        Welcome to our service!
       </div>
     </div>
     <!-- Duplicate for seamless loop -->
     <div class="infinity-loop-content">
       <div class="infinity-text">
         <i class="fas fa-exclamation-circle"></i>
-       Welcome to our service!
-      </div>
-      <div class="infinity-text">
-        <i class="fas fa-exclamation-circle"></i>
         Welcome to our service!
       </div>
       <div class="infinity-text">
         <i class="fas fa-exclamation-circle"></i>
-       Welcome to our service!
+        Total Devices: <span id="totalDevicesMarquee2">0</span>
       </div>
       <div class="infinity-text">
         <i class="fas fa-exclamation-circle"></i>
-       Welcome to our service!
+        Active in Last 15 Min: <span id="activeCountMarquee2">0</span>
+      </div>
+      <div class="infinity-text">
+        <i class="fas fa-exclamation-circle"></i>
+        Welcome to our service!
       </div>
     </div>
   </div>
@@ -1815,21 +1816,14 @@ body {
 
 <div class="main">
   <div class="devices" id="devicesList">
+    <!-- Devices will be loaded here -->
   </div>
 </div>
 
-<script type="module">
-let API_BASE, BASE_URL;
-try {
-  API_BASE = import.meta.env?.VITE_API_BASE;
-  BASE_URL = API_BASE;
-  
-  console.log("✅ Environment loaded:");
-  console.log("API_BASE:", API_BASE);
-  console.log("BASE_URL:", BASE_URL);
-} catch (error) {
-  console.error("❌ Environment loading failed:", error);
-}
+<script>
+// Configuration - UPDATE THESE URLS AS PER YOUR SERVER
+let API_BASE = "http://localhost:3000"; // Change to your server URL
+let BASE_URL = API_BASE;
 
 // ✅ API ENDPOINTS
 const DEVICE_API = `${BASE_URL}/api/devices`;
@@ -1902,7 +1896,7 @@ async function verifyTokenWithServer() {
     
   } catch (error) {
     console.error('❌ Token verification error:', error);
-    return true;
+    return true; // Continue anyway
   }
 }
 
@@ -1910,7 +1904,7 @@ function assignSerialNumbers(devices) {
   const totalDevices = devices.length;
   
   return devices.map((device, index) => {
-    device.serialNumber = totalDevices - 1 - index;
+    device.serialNumber = totalDevices - index;
     device.isLatest = index === 0;
     device.isOldest = index === devices.length - 1;
     return device;
@@ -1936,6 +1930,16 @@ function hideLoadingAnimation() {
 
 function updateLoadingCounter(total) {
   document.getElementById('loadingTotalCount').textContent = total;
+}
+
+function updateMarqueeCounters() {
+  const total = document.getElementById('totalDevices').textContent;
+  const active = document.getElementById('activeCount').textContent;
+  
+  document.getElementById('totalDevicesMarquee').textContent = total;
+  document.getElementById('totalDevicesMarquee2').textContent = total;
+  document.getElementById('activeCountMarquee').textContent = active;
+  document.getElementById('activeCountMarquee2').textContent = active;
 }
 
 function showCheckPopup() {
@@ -2042,6 +2046,8 @@ function updateActiveCounter() {
   } else {
     badge.classList.remove('active');
   }
+  
+  updateMarqueeCounters();
 }
 
 function addToActiveDevices(uid, timestamp) {
@@ -2119,6 +2125,7 @@ async function deleteDevice(uid) {
       
       document.getElementById("totalDevices").textContent = allDevices.length;
       updateLoadingCounter(allDevices.length);
+      updateMarqueeCounters();
       
       const currentSearch = document.getElementById("search").value.toLowerCase();
       renderList(currentSearch);
@@ -2246,6 +2253,12 @@ function initPopupEvents() {
       hideDeleteConfirm();
     }
   });
+  
+  document.getElementById('checkPopup').addEventListener('click', function(e) {
+    if (e.target === this) {
+      hideCheckPopup();
+    }
+  });
 }
 
 /* ===== GET SIM NUMBER ===== */
@@ -2310,7 +2323,6 @@ function formatDateOnly(timestamp) {
 function checkDeviceOnlineReply(data, message) {
   console.log("🔍 Strict checkDeviceOnlineReply:", { data, message });
   
-  // First check if it's a valid reply (not null/undefined)
   if (!data && !message) {
     console.log("❌ No data or message");
     return false;
@@ -2318,20 +2330,16 @@ function checkDeviceOnlineReply(data, message) {
   
   let availableValue = "";
   
-  // Extract the available value from data
   if (data?.available !== undefined) {
     availableValue = String(data.available).toLowerCase().trim();
   }
   
-  // Also check message if availableValue is empty
   if (!availableValue && message) {
     availableValue = String(message).toLowerCase().trim();
   }
   
   console.log("Available value to check:", availableValue);
   
-  // STRICT CHECK: Only accept exact "device is online" messages
-  // NOT just "online", NOT just "available"
   const onlineKeywords = [
     "device is online",
     "device online",
@@ -2348,13 +2356,11 @@ function checkDeviceOnlineReply(data, message) {
     }
   }
   
-  // Also accept boolean true
   if (data?.available === true) {
     isExactOnlineMessage = true;
     console.log("✅ Boolean true received");
   }
   
-  // Also accept string "true"
   if (availableValue === "true") {
     isExactOnlineMessage = true;
     console.log("✅ String 'true' received");
@@ -2365,7 +2371,6 @@ function checkDeviceOnlineReply(data, message) {
     return false;
   }
   
-  // Time validation - only accept replies within 1 minute
   const now = Date.now();
   const replyTimestamp = data?.timestamp || data?.checkedAt || data?.lastSeen || now;
   const timeDiff = (now - Number(replyTimestamp)) / (1000 * 60);
@@ -2393,7 +2398,6 @@ function updateCardStatus(uid, status, timestamp) {
   button.disabled = false;
   
   if (status === 'online') {
-    // VERIFY FIRST that this is actually an online device
     const device = allDevices.find(d => {
       const deviceIdFields = [
         d.id,
@@ -2443,7 +2447,6 @@ function updateCardStatus(uid, status, timestamp) {
     const timerSpan = card.querySelector('.response-timer');
     if (timerSpan) timerSpan.remove();
     
-    // Auto-reset after 30 seconds
     setTimeout(() => {
       if (activeOnlineDevices.has(uid)) {
         resetDeviceToPending(uid);
@@ -2589,13 +2592,11 @@ function initSocketListeners() {
         const timeDiff = (currentTime - Number(replyTime)) / (1000 * 60);
         
         if (timeDiff <= 1) {
-          // IMPORTANT: Check if this is actually an "online" reply
           const isOnlineReply = checkDeviceOnlineReply(data, data.available);
           if (isOnlineReply) {
             handleOnlineResponse(data.uid, data.available, currentTime);
             updateDeviceLastSeen(data.uid, currentTime);
           } else {
-            // If not "device is online" message, mark as pending
             console.log("Not 'device is online' message, marking as pending");
             updateCardStatus(data.uid, 'pending', currentTime);
             clearCheckingTimer(data.uid);
@@ -2634,7 +2635,6 @@ function initSocketListeners() {
         const timeDiff = (currentTime - Number(replyTime)) / (1000 * 60);
         
         if (timeDiff <= 1) {
-          // CRITICAL: Check the actual message content
           const available = replyData.available || payload.message;
           const isOnlineReply = checkDeviceOnlineReply(replyData, available);
           
@@ -2651,7 +2651,6 @@ function initSocketListeners() {
             }
           } else {
             console.log("❌ Not 'device is online' from brosReply, marking as pending");
-            // Mark as PENDING, not online
             updateCardStatus(payload.uid, 'pending', currentTime);
             clearCheckingTimer(payload.uid);
             
@@ -2711,6 +2710,7 @@ function initSocketListeners() {
         
         document.getElementById("totalDevices").textContent = allDevices.length;
         updateLoadingCounter(allDevices.length);
+        updateMarqueeCounters();
         
         const currentSearch = document.getElementById("search").value.toLowerCase();
         renderList(currentSearch);
@@ -2771,6 +2771,7 @@ function initSocketListeners() {
         
         document.getElementById("totalDevices").textContent = allDevices.length;
         updateLoadingCounter(allDevices.length);
+        updateMarqueeCounters();
         renderList(document.getElementById("search").value.toLowerCase());
       }
     });
@@ -2828,7 +2829,6 @@ function handleOnlineResponse(uid, available, checkedAt) {
     return;
   }
   
-  // Final verification
   const isOnlineReply = checkDeviceOnlineReply({ 
     available: available,
     timestamp: checkedAt 
@@ -2913,6 +2913,8 @@ function updateDeviceLastSeen(uid, timestamp) {
 }
 
 function showNotification(message, type = 'info') {
+  if (typeof document === 'undefined') return;
+  
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
   notification.innerHTML = `
@@ -2959,6 +2961,10 @@ function showNotification(message, type = 'info') {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
       }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -2967,7 +2973,11 @@ function showNotification(message, type = 'info') {
   
   setTimeout(() => {
     notification.style.animation = 'slideOut 0.3s ease';
-    setTimeout(() => notification.remove(), 300);
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 300);
   }, 3000);
 }
 
@@ -3001,7 +3011,6 @@ async function checkOnline(uid, event) {
     
     const timestamp = Date.now();
     
-    // First API call
     fetch(`${CHECK_API}/${uid}`, {
       method: "POST",
       headers: { 
@@ -3027,7 +3036,6 @@ async function checkOnline(uid, event) {
       console.warn(" Check Online API failed:", e);
     });
     
-    // Second API call
     fetch(`${BROS_REPLY_API}/${uid}`, {
       headers: { "Authorization": `Bearer ${authToken}` }
     })
@@ -3045,7 +3053,6 @@ async function checkOnline(uid, event) {
       console.warn(" Bros Reply API failed:", e);
     });
     
-    // Wait 30 seconds before marking as pending
     const timeoutId = setTimeout(() => {
       if (checkingDevices.has(uid)) {
         const device = allDevices.find(d => {
@@ -3161,9 +3168,7 @@ function renderDevice(d, index) {
       <div class="device-info">
         <div class="device-name-row">
           <div class="device-name" title="${brand} ${model}">${brand} ${model}</div>
-          <div class="device-version">
-            ${androidVersion ? `Version ${androidVersion}` : ''}
-          </div>
+          ${androidVersion ? `<div class="device-version">${androidVersion}</div>` : ''}
         </div>
         <div class="device-meta">
           ${isChecking ? '<span class="response-timer">WAITING</span>' : ''}
@@ -3212,7 +3217,9 @@ function renderDevice(d, index) {
 
   card.onclick = (e) => {
     if (!e.target.closest('.top-buttons-container') && 
-        !e.target.closest('.check-online-btn')) {
+        !e.target.closest('.check-online-btn') &&
+        !e.target.closest('.like-btn') &&
+        !e.target.closest('.delete-btn')) {
       scrollPosition = window.scrollY;
       localStorage.setItem('deviceListScrollPosition', scrollPosition);
       localStorage.setItem('deviceListSearchQuery', document.getElementById("search").value);
@@ -3293,6 +3300,7 @@ async function fetchDevices() {
     
     document.getElementById("totalDevices").textContent = allDevices.length;
     updateLoadingCounter(allDevices.length);
+    updateMarqueeCounters();
     
     const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
     allDevices.forEach(device => {
@@ -3327,6 +3335,7 @@ async function fetchDevices() {
     allDevices = [];
     document.getElementById("totalDevices").textContent = "0";
     updateActiveCounter();
+    updateMarqueeCounters();
     hideLoadingAnimation();
     renderList();
     
