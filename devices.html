@@ -1824,7 +1824,6 @@ body {
 
 const BASE_URL = import.meta.env.VITE_API_BASE;
 
-// ✅ API ENDPOINTS
 const DEVICE_API = `${BASE_URL}/api/devices`;
 const CHECK_API = `${BASE_URL}/api/check-online`;
 const BROS_REPLY_API = `${BASE_URL}/api/brosreply`;
@@ -1833,7 +1832,6 @@ const DELETE_DEVICE_API = `${BASE_URL}/api/delete`;
 const LIKE_UNLIKE_API = `${BASE_URL}/api/likeunlike`;
 const LIKES_API = `${BASE_URL}/api/likes`;
 
-// Global variables
 let allDevices = [];
 let checkingDevices = new Map();
 let countdownInterval = null;
