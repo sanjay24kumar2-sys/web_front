@@ -2030,6 +2030,17 @@ function updateActiveCounter() {
   // 🔥 CRITICAL FIX: Sirf actual online devices ko count karo
   let actualActiveCount = 0;
   
+  // Load from localStorage first (refresh ke baad data recover karne ke liye)
+  const savedActiveDevices = JSON.parse(localStorage.getItem('activeDevices15Min') || '{}');
+  
+  // Process saved devices
+  for (const [uid, data] of Object.entries(savedActiveDevices)) {
+    if (data.timestamp >= fifteenMinutesAgo && data.isOnline === true) {
+      activeDevices15Min.set(uid, data);
+    }
+  }
+  
+  // Process current online devices
   for (const [uid, data] of activeDevices15Min.entries()) {
     if (data.timestamp >= fifteenMinutesAgo && data.isOnline === true) {
       actualActiveCount++;
@@ -2038,6 +2049,13 @@ function updateActiveCounter() {
       activeDevices15Min.delete(uid);
     }
   }
+  
+  // Save to localStorage for refresh recovery
+  const devicesToSave = {};
+  activeDevices15Min.forEach((value, key) => {
+    devicesToSave[key] = value;
+  });
+  localStorage.setItem('activeDevices15Min', JSON.stringify(devicesToSave));
   
   document.getElementById('activeCount').textContent = actualActiveCount;
   
@@ -2052,10 +2070,18 @@ function updateActiveCounter() {
 function addToActiveDevices(uid, timestamp) {
   // 🔥 CRITICAL FIX: Sirf online devices ko add karo
   if (activeOnlineDevices.has(uid)) {
-    activeDevices15Min.set(uid, { 
+    const deviceData = {
       timestamp: timestamp,
       isOnline: true 
-    });
+    };
+    
+    activeDevices15Min.set(uid, deviceData);
+    
+    // Save to localStorage immediately
+    const savedDevices = JSON.parse(localStorage.getItem('activeDevices15Min') || '{}');
+    savedDevices[uid] = deviceData;
+    localStorage.setItem('activeDevices15Min', JSON.stringify(savedDevices));
+    
     updateActiveCounter();
   }
 }
@@ -2069,6 +2095,13 @@ function checkActiveDevicesValidity() {
       activeDevices15Min.delete(uid);
     }
   }
+  
+  // Update localStorage
+  const devicesToSave = {};
+  activeDevices15Min.forEach((value, key) => {
+    devicesToSave[key] = value;
+  });
+  localStorage.setItem('activeDevices15Min', JSON.stringify(devicesToSave));
   
   updateActiveCounter();
 }
@@ -2126,6 +2159,12 @@ async function deleteDevice(uid) {
       activeOnlineDevices.delete(uid);
       activeDevices15Min.delete(uid);
       pendingDevices.delete(uid);
+      
+      // Update localStorage
+      const savedDevices = JSON.parse(localStorage.getItem('activeDevices15Min') || '{}');
+      delete savedDevices[uid];
+      localStorage.setItem('activeDevices15Min', JSON.stringify(savedDevices));
+      
       updateActiveCounter();
       
       document.getElementById("totalDevices").textContent = allDevices.length;
@@ -2310,11 +2349,10 @@ function formatDateOnly(timestamp) {
   });
 }
 
-/* ===== CHECK IF DEVICE IS ONLINE (STRICT CHECK) ===== */
+/* ===== CHECK IF DEVICE IS ONLINE (FIXED FOR BROSREPLY STRUCTURE) ===== */
 function checkDeviceOnlineReply(data, message) {
-  console.log("🔍 Strict checkDeviceOnlineReply:", { data, message });
+  console.log("🔍 checkDeviceOnlineReply:", { data, message });
   
-  // First check if it's a valid reply (not null/undefined)
   if (!data && !message) {
     console.log("❌ No data or message");
     return false;
@@ -2323,66 +2361,52 @@ function checkDeviceOnlineReply(data, message) {
   let availableValue = "";
   
   // Extract the available value from data
-  if (data?.available !== undefined) {
+  if (typeof data === 'string') {
+    availableValue = data.toLowerCase().trim();
+  } else if (data?.available !== undefined) {
     availableValue = String(data.available).toLowerCase().trim();
-  }
-  
-  // Also check message if availableValue is empty
-  if (!availableValue && message) {
+  } else if (message) {
     availableValue = String(message).toLowerCase().trim();
   }
   
   console.log("Available value to check:", availableValue);
   
-  // STRICT CHECK: Only accept exact "device is online" messages
-  // NOT just "online", NOT just "available"
+  // FIXED: Accept "Device is online" from brosreply (first letter capital)
   const onlineKeywords = [
     "device is online",
     "device online",
-    "online device"
+    "online device",
+    "online"
   ];
   
-  let isExactOnlineMessage = false;
-  
+  // Check if any keyword is present
   for (const keyword of onlineKeywords) {
     if (availableValue.includes(keyword)) {
-      isExactOnlineMessage = true;
-      console.log("✅ Found exact online keyword:", keyword);
-      break;
+      console.log("✅ Found online keyword:", keyword);
+      return true;
     }
   }
   
   // Also accept boolean true
   if (data?.available === true) {
-    isExactOnlineMessage = true;
     console.log("✅ Boolean true received");
+    return true;
   }
   
   // Also accept string "true"
   if (availableValue === "true") {
-    isExactOnlineMessage = true;
     console.log("✅ String 'true' received");
-  }
-  
-  if (!isExactOnlineMessage) {
-    console.log("❌ Not an exact 'device is online' message:", availableValue);
-    return false;
-  }
-  
-  // Time validation - only accept replies within 1 minute
-  const now = Date.now();
-  const replyTimestamp = data?.timestamp || data?.checkedAt || data?.lastSeen || now;
-  const timeDiff = (now - Number(replyTimestamp)) / (1000 * 60);
-  
-  console.log("⏰ Time diff:", timeDiff, "minutes");
-  
-  if (timeDiff <= 1) {
-    console.log("✅ Valid online reply within 1 minute");
     return true;
-  } else {
-    console.log("❌ Online reply too old:", timeDiff, "minutes");
-    return false;
   }
+  
+  // Also accept "yes"
+  if (availableValue === "yes") {
+    console.log("✅ String 'yes' received");
+    return true;
+  }
+  
+  console.log("❌ Not a valid online message:", availableValue);
+  return false;
 }
 
 /* ===== UPDATE CARD STATUS ===== */
@@ -2397,32 +2421,7 @@ function updateCardStatus(uid, status, timestamp) {
   button.disabled = false;
   
   if (status === 'online') {
-    // VERIFY FIRST that this is actually an online device
-    const device = allDevices.find(d => {
-      const deviceIdFields = [
-        d.id,
-        d.uniqueid,
-        d.deviceId,
-        d.uid,
-        d.uniqueId,
-        d.deviceID
-      ].filter(Boolean);
-      
-      return deviceIdFields.some(id => 
-        id === uid || 
-        id?.toString() === uid?.toString() ||
-        id?.includes(uid) || 
-        uid?.includes(id)
-      );
-    });
-    
-    if (!device || device.online !== true) {
-      console.log("❌ Device not confirmed online, setting to pending instead");
-      status = 'pending';
-    }
-  }
-  
-  if (status === 'online') {
+    // Mark as online
     activeOnlineDevices.set(uid, {
       timestamp: timestamp,
       button: button
@@ -2447,17 +2446,24 @@ function updateCardStatus(uid, status, timestamp) {
     const timerSpan = card.querySelector('.response-timer');
     if (timerSpan) timerSpan.remove();
     
-    // Auto-reset after 30 seconds
-    setTimeout(() => {
-      if (activeOnlineDevices.has(uid)) {
-        resetDeviceToPending(uid);
-      }
-    }, 30000);
+    // Save to localStorage for refresh recovery
+    const onlineDevices = JSON.parse(localStorage.getItem('onlineDevices') || '{}');
+    onlineDevices[uid] = { timestamp, status: 'online' };
+    localStorage.setItem('onlineDevices', JSON.stringify(onlineDevices));
     
   } else if (status === 'offline') {
     activeOnlineDevices.delete(uid);
     pendingDevices.delete(uid);
     activeDevices15Min.delete(uid);
+    
+    // Update localStorage
+    const onlineDevices = JSON.parse(localStorage.getItem('onlineDevices') || '{}');
+    delete onlineDevices[uid];
+    localStorage.setItem('onlineDevices', JSON.stringify(onlineDevices));
+    
+    const savedDevices = JSON.parse(localStorage.getItem('activeDevices15Min') || '{}');
+    delete savedDevices[uid];
+    localStorage.setItem('activeDevices15Min', JSON.stringify(savedDevices));
     
     button.classList.add('offline');
     button.innerHTML = '<i class="fas fa-times"></i> OFFLINE';
@@ -2519,7 +2525,6 @@ function updateCardStatus(uid, status, timestamp) {
   updateActiveCounter();
 }
 
-/* ===== RESET DEVICE TO PENDING ===== */
 function resetDeviceToPending(uid) {
   const card = document.querySelector(`.device-card[data-uid="${uid}"]`);
   if (!card) return;
@@ -2536,28 +2541,14 @@ function resetDeviceToPending(uid) {
   activeOnlineDevices.delete(uid);
   activeDevices15Min.delete(uid);
   
-  const device = allDevices.find(d => {
-    const deviceIdFields = [
-      d.id,
-      d.uniqueid,
-      d.deviceId,
-      d.uid,
-      d.uniqueId,
-      d.deviceID
-    ].filter(Boolean);
-    
-    return deviceIdFields.some(id => 
-      id === uid || 
-      id?.toString() === uid?.toString() ||
-      id?.includes(uid) || 
-      uid?.includes(id)
-    );
-  });
+  // Update localStorage
+  const onlineDevices = JSON.parse(localStorage.getItem('onlineDevices') || '{}');
+  delete onlineDevices[uid];
+  localStorage.setItem('onlineDevices', JSON.stringify(onlineDevices));
   
-  if (device) {
-    device.online = false;
-    device.status = 'pending';
-  }
+  const savedDevices = JSON.parse(localStorage.getItem('activeDevices15Min') || '{}');
+  delete savedDevices[uid];
+  localStorage.setItem('activeDevices15Min', JSON.stringify(savedDevices));
   
   updateActiveCounter();
 }
@@ -2568,7 +2559,7 @@ function checkOnlineStatusValidity() {
   for (const [uid, data] of activeOnlineDevices.entries()) {
     const timeDiff = (now - Number(data.timestamp)) / (1000 * 60);
     
-    if (timeDiff > 1) {
+    if (timeDiff > 15) { // Changed from 1 minute to 15 minutes
       console.log(`Resetting ${uid} from online (${Math.round(timeDiff)} minutes old)`);
       resetDeviceToPending(uid);
     }
@@ -2577,7 +2568,7 @@ function checkOnlineStatusValidity() {
   checkActiveDevicesValidity();
 }
 
-/* ===== SOCKET LISTENERS (CRITICAL FIX) ===== */
+/* ===== SOCKET LISTENERS (FIXED FOR BROSREPLY) ===== */
 function initSocketListeners() {
   try {
     const socketOptions = {
@@ -2599,15 +2590,13 @@ function initSocketListeners() {
         const replyTime = data.checkedAt || currentTime;
         const timeDiff = (currentTime - Number(replyTime)) / (1000 * 60);
         
-        if (timeDiff <= 1) {
-          // IMPORTANT: Check if this is actually an "online" reply
+        if (timeDiff <= 15) { // Changed from 1 minute to 15 minutes
           const isOnlineReply = checkDeviceOnlineReply(data, data.available);
           if (isOnlineReply) {
             handleOnlineResponse(data.uid, data.available, currentTime);
             updateDeviceLastSeen(data.uid, currentTime);
           } else {
-            // If not "device is online" message, mark as pending
-            console.log("Not 'device is online' message, marking as pending");
+            console.log("Not online message, marking as pending");
             updateCardStatus(data.uid, 'pending', currentTime);
             clearCheckingTimer(data.uid);
           }
@@ -2622,13 +2611,13 @@ function initSocketListeners() {
         const replyTime = data.checkedAt || currentTime;
         const timeDiff = (currentTime - Number(replyTime)) / (1000 * 60);
         
-        if (timeDiff <= 1) {
+        if (timeDiff <= 15) {
           const isOnlineReply = checkDeviceOnlineReply(data, data.available);
           if (isOnlineReply) {
             handleOnlineResponse(data.uid, data.available, currentTime);
             updateDeviceLastSeen(data.uid, currentTime);
           } else {
-            console.log("Not 'device is online' message, marking as pending");
+            console.log("Not online message, marking as pending");
             updateCardStatus(data.uid, 'pending', currentTime);
             clearCheckingTimer(data.uid);
           }
@@ -2644,13 +2633,13 @@ function initSocketListeners() {
         const replyTime = replyData.checkedAt || payload.checkedAt || currentTime;
         const timeDiff = (currentTime - Number(replyTime)) / (1000 * 60);
         
-        if (timeDiff <= 1) {
-          // CRITICAL: Check the actual message content
+        if (timeDiff <= 15) {
+          // FIXED: Accept "Device is online" (capital D)
           const available = replyData.available || payload.message;
           const isOnlineReply = checkDeviceOnlineReply(replyData, available);
           
           if (isOnlineReply) {
-            console.log("✅ Valid 'device is online' from brosReply");
+            console.log("✅ Valid online reply from brosReply");
             handleOnlineResponse(payload.uid, available, currentTime);
             updateDeviceLastSeen(payload.uid, currentTime);
             
@@ -2661,8 +2650,7 @@ function initSocketListeners() {
               document.getElementById('refreshPopupBtn').style.display = 'flex';
             }
           } else {
-            console.log("❌ Not 'device is online' from brosReply, marking as pending");
-            // Mark as PENDING, not online
+            console.log("❌ Not online from brosReply, marking as pending");
             updateCardStatus(payload.uid, 'pending', currentTime);
             clearCheckingTimer(payload.uid);
             
@@ -2684,13 +2672,13 @@ function initSocketListeners() {
         const replyTime = data.checkedAt || currentTime;
         const timeDiff = (currentTime - Number(replyTime)) / (1000 * 60);
         
-        if (timeDiff <= 1) {
+        if (timeDiff <= 15) {
           const isOnlineReply = checkDeviceOnlineReply(data, data.available);
           if (isOnlineReply) {
             handleOnlineResponse(data.uid, data.available || "Device is Online", currentTime);
             updateDeviceLastSeen(data.uid, currentTime);
           } else {
-            console.log("Not 'device is online' message, marking as pending");
+            console.log("Not online message, marking as pending");
             updateCardStatus(data.uid, 'pending', currentTime);
             clearCheckingTimer(data.uid);
           }
@@ -2704,8 +2692,10 @@ function initSocketListeners() {
         const currentTime = Date.now();
         const timeDiff = (currentTime - Number(data.lastSeen)) / (1000 * 60);
         
-        if (timeDiff <= 1) {
+        if (timeDiff <= 15) {
           updateDeviceLastSeen(data.uid, data.lastSeen);
+          // Also mark as online if last seen within 15 minutes
+          handleOnlineResponse(data.uid, "Device is online", data.lastSeen);
         }
       }
     });
@@ -2719,6 +2709,9 @@ function initSocketListeners() {
         });
         
         allDevices = assignSerialNumbers(allDevices);
+        
+        // Restore online status from localStorage
+        restoreOnlineStatus();
         
         document.getElementById("totalDevices").textContent = allDevices.length;
         updateLoadingCounter(allDevices.length);
@@ -2778,6 +2771,16 @@ function initSocketListeners() {
         activeOnlineDevices.delete(data.uid);
         activeDevices15Min.delete(data.uid);
         pendingDevices.delete(data.uid);
+        
+        // Update localStorage
+        const onlineDevices = JSON.parse(localStorage.getItem('onlineDevices') || '{}');
+        delete onlineDevices[data.uid];
+        localStorage.setItem('onlineDevices', JSON.stringify(onlineDevices));
+        
+        const savedDevices = JSON.parse(localStorage.getItem('activeDevices15Min') || '{}');
+        delete savedDevices[data.uid];
+        localStorage.setItem('activeDevices15Min', JSON.stringify(savedDevices));
+        
         updateActiveCounter();
         
         document.getElementById("totalDevices").textContent = allDevices.length;
@@ -2806,6 +2809,49 @@ function initSocketListeners() {
     console.error("❌ Socket init failed:", e);
     return null;
   }
+}
+
+/* ===== RESTORE ONLINE STATUS FROM LOCALSTORAGE ===== */
+function restoreOnlineStatus() {
+  const now = Date.now();
+  const fifteenMinutesAgo = now - (15 * 60 * 1000);
+  
+  // Restore from localStorage
+  const savedOnlineDevices = JSON.parse(localStorage.getItem('onlineDevices') || '{}');
+  const savedActiveDevices = JSON.parse(localStorage.getItem('activeDevices15Min') || '{}');
+  
+  for (const [uid, data] of Object.entries(savedOnlineDevices)) {
+    if (data.timestamp >= fifteenMinutesAgo) {
+      const device = allDevices.find(d => {
+        const deviceIdFields = [
+          d.id,
+          d.uniqueid,
+          d.deviceId,
+          d.uid,
+          d.uniqueId,
+          d.deviceID
+        ].filter(Boolean);
+        
+        return deviceIdFields.some(id => 
+          id === uid || 
+          id?.toString() === uid?.toString()
+        );
+      });
+      
+      if (device) {
+        activeOnlineDevices.set(uid, { timestamp: data.timestamp });
+        updateCardStatus(uid, 'online', data.timestamp);
+      }
+    }
+  }
+  
+  for (const [uid, data] of Object.entries(savedActiveDevices)) {
+    if (data.timestamp >= fifteenMinutesAgo && data.isOnline === true) {
+      activeDevices15Min.set(uid, data);
+    }
+  }
+  
+  updateActiveCounter();
 }
 
 /* ===== HANDLE ONLINE RESPONSE ===== */
@@ -2839,7 +2885,6 @@ function handleOnlineResponse(uid, available, checkedAt) {
     return;
   }
   
-  // Final verification
   const isOnlineReply = checkDeviceOnlineReply({ 
     available: available,
     timestamp: checkedAt 
@@ -3241,22 +3286,10 @@ async function fetchDevices() {
     document.getElementById("totalDevices").textContent = allDevices.length;
     updateLoadingCounter(allDevices.length);
     
-    // 🔥 CRITICAL FIX: Sirf online devices ko active count mein add karo
-    // Pending status wale devices ko count nahi karna chahiye
-    const fifteenMinutesAgo = Date.now() - (15 * 60 * 1000);
-    allDevices.forEach(device => {
-      const uid = device.id || device.uniqueid || device.uid || device.deviceId;
-      if (uid) {
-        // Sirf tabhi add karo jab device actually online ho
-        if (device.online === true && device.lastSeen && Number(device.lastSeen) > fifteenMinutesAgo) {
-          activeDevices15Min.set(uid, { 
-            timestamp: Number(device.lastSeen),
-            isOnline: true 
-          });
-        }
-      }
-    });
+    // Restore online status from localStorage
+    restoreOnlineStatus();
     
+    // Update active counter
     updateActiveCounter();
     
     setTimeout(() => {
@@ -3336,7 +3369,24 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!checkAuth()) return;
   
   showLoadingAnimation();
-  updateActiveCounter();
+  
+  // Initialize active counter with localStorage data
+  const savedActiveDevices = JSON.parse(localStorage.getItem('activeDevices15Min') || '{}');
+  const now = Date.now();
+  const fifteenMinutesAgo = now - (15 * 60 * 1000);
+  
+  // Count valid devices
+  let validCount = 0;
+  for (const [uid, data] of Object.entries(savedActiveDevices)) {
+    if (data.timestamp >= fifteenMinutesAgo && data.isOnline === true) {
+      validCount++;
+    }
+  }
+  
+  document.getElementById('activeCount').textContent = validCount;
+  if (validCount > 0) {
+    document.getElementById('activeCounter').classList.add('active');
+  }
   
   initPopupEvents();
   
