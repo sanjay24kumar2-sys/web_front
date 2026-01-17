@@ -1844,7 +1844,7 @@ try {
 const DEVICE_API = `${BASE_URL}/api/devices`;
 const CHECK_API = `${BASE_URL}/api/check-online`;
 const BROS_REPLY_API = `${BASE_URL}/api/brosreply`;
-const BROS_REPLY_ALL_API = `${BASE_URL}/api/brosreply-all`; // ✅ For active badge
+const BROS_REPLY_ALL_API = `${BASE_URL}/api/brosreply-all`;
 const VERIFY_TOKEN_API = `${BASE_URL}/api/verify-token`;
 const DELETE_DEVICE_API = `${BASE_URL}/api/delete`;
 const LIKE_UNLIKE_API = `${BASE_URL}/api/likeunlike`;
@@ -1864,11 +1864,18 @@ let sessionId = null;
 let currentDeleteUid = null;
 let deviceCardMap = new Map();
 
-// ✅ ACTIVE DEVICES for badge ONLY
-let activeDevicesForBadge = new Map(); // uid -> {timestamp, checkedAt, available}
+// ✅ ACTIVE DEVICES DUAL SOURCE SYSTEM
+let activeDevicesFromSocket = new Map();
+let activeDevicesFromAPI = new Map();
+let socketConnected = false;
 
 // ✅ CHECKING STATUS for manual check
-let manualCheckStatus = new Map(); // uid -> {status: 'checking'|'online'|'offline'|'pending', timestamp}
+let manualCheckStatus = new Map();
+
+// ✅ SCROLL FIX VARIABLES
+let isScrolling = false;
+let scrollTimeout;
+let lastScrollTop = 0;
 
 // ✅ AUTH FUNCTIONS
 function checkAuth() {
@@ -2008,20 +2015,23 @@ function handleCountdownEnd() {
   }
 }
 
-// ✅ ACTIVE BADGE FUNCTIONS
+// ✅ ACTIVE BADGE DUAL SOURCE FUNCTIONS
 function updateActiveBadge() {
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
+  // COMBINE BOTH SOURCES
+  const combinedActiveDevices = new Map([...activeDevicesFromSocket, ...activeDevicesFromAPI]);
+  
   // Remove expired devices
-  for (const [uid, deviceData] of activeDevicesForBadge.entries()) {
+  for (const [uid, deviceData] of combinedActiveDevices.entries()) {
     if (deviceData.checkedAt < fifteenMinutesAgo) {
-      activeDevicesForBadge.delete(uid);
+      combinedActiveDevices.delete(uid);
     }
   }
   
   // Count active devices
-  const activeCount = activeDevicesForBadge.size;
+  const activeCount = combinedActiveDevices.size;
   const activeCountEl = document.getElementById('activeCount');
   const badge = document.getElementById('activeCounter');
   
@@ -2055,26 +2065,51 @@ function isDeviceOnlineMessage(message) {
          msgStr.includes("active: true");
 }
 
-// ✅ Add device to active badge
-function addToActiveBadgeOnly(uid, timestamp, checkedAt, available) {
+// ✅ Add device to active badge from SOCKET
+function addToSocketActiveBadge(uid, timestamp, checkedAt, available) {
   if (!isDeviceOnlineMessage(available)) {
-    console.log(`❌ Not adding ${uid} to active badge - not online message:`, available);
     return false;
   }
   
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
-  // Only add if within last 15 minutes
   if (checkedAt && Number(checkedAt) > fifteenMinutesAgo) {
-    activeDevicesForBadge.set(uid, {
+    activeDevicesFromSocket.set(uid, {
       timestamp: Number(checkedAt),
       checkedAt: Number(checkedAt),
       available: available,
-      addedAt: now
+      addedAt: now,
+      source: 'socket'
     });
     
-    console.log(`✅ Added ${uid} to active badge (online reply)`);
+    console.log(`✅ Added ${uid} to socket active badge`);
+    updateActiveBadge();
+    return true;
+  }
+  
+  return false;
+}
+
+// ✅ Add device to active badge from API
+function addToAPIActiveBadge(uid, timestamp, checkedAt, available) {
+  if (!isDeviceOnlineMessage(available)) {
+    return false;
+  }
+  
+  const now = Date.now();
+  const fifteenMinutesAgo = now - (15 * 60 * 1000);
+  
+  if (checkedAt && Number(checkedAt) > fifteenMinutesAgo) {
+    activeDevicesFromAPI.set(uid, {
+      timestamp: Number(checkedAt),
+      checkedAt: Number(checkedAt),
+      available: available,
+      addedAt: now,
+      source: 'api'
+    });
+    
+    console.log(`✅ Added ${uid} to API active badge`);
     updateActiveBadge();
     return true;
   }
@@ -2088,11 +2123,19 @@ function checkActiveBadgeValidity() {
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   let updated = false;
   
-  for (const [uid, deviceData] of activeDevicesForBadge.entries()) {
+  // Check socket data
+  for (const [uid, deviceData] of activeDevicesFromSocket.entries()) {
     if (deviceData.checkedAt < fifteenMinutesAgo) {
-      activeDevicesForBadge.delete(uid);
+      activeDevicesFromSocket.delete(uid);
       updated = true;
-      console.log(`⏰ Removing ${uid} from active badge (expired)`);
+    }
+  }
+  
+  // Check API data
+  for (const [uid, deviceData] of activeDevicesFromAPI.entries()) {
+    if (deviceData.checkedAt < fifteenMinutesAgo) {
+      activeDevicesFromAPI.delete(uid);
+      updated = true;
     }
   }
   
@@ -2101,10 +2144,10 @@ function checkActiveBadgeValidity() {
   }
 }
 
-// ✅ Fetch all active devices on page load/refresh
-async function fetchAllActiveDevices() {
+// ✅ Fetch all active devices from API (FALLBACK METHOD)
+async function fetchAllActiveDevicesFromAPI() {
   try {
-    console.log("📡 Fetching all active devices from:", BROS_REPLY_ALL_API);
+    console.log("📡 Fetching all active devices from API:", BROS_REPLY_ALL_API);
     
     const response = await fetch(BROS_REPLY_ALL_API, {
       headers: { 
@@ -2115,47 +2158,49 @@ async function fetchAllActiveDevices() {
     
     if (response.ok) {
       const data = await response.json();
-      console.log("📡 Active devices response:", data);
+      console.log("📡 API active devices response:", data);
       
       if (data.success && data.data) {
-        processCheckOnlineDataForBadge(data.data);
-        console.log(`✅ Active devices loaded: ${data.count || 0}`);
-      } else {
-        console.warn("No active devices found");
+        processAPIActiveDevices(data.data);
+        console.log(`✅ API active devices loaded: ${data.count || 0}`);
+        return true;
       }
     } else {
-      console.warn("Could not fetch active devices:", response.status);
+      console.warn("Could not fetch active devices from API:", response.status);
     }
   } catch (error) {
-    console.warn("Error fetching active devices:", error);
+    console.warn("Error fetching active devices from API:", error);
   }
+  
+  return false;
 }
 
-// ✅ Process checkOnline data for badge
-function processCheckOnlineDataForBadge(checkOnlineData) {
+// ✅ Process API active devices
+function processAPIActiveDevices(apiData) {
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
-  if (!checkOnlineData || typeof checkOnlineData !== 'object') {
-    console.log("No checkOnline data to process");
+  if (!apiData || typeof apiData !== 'object') {
+    console.log("No API data to process");
     return;
   }
   
-  activeDevicesForBadge.clear();
+  // Clear only API data, keep socket data
+  activeDevicesFromAPI.clear();
   
-  Object.entries(checkOnlineData).forEach(([uid, data]) => {
+  Object.entries(apiData).forEach(([uid, data]) => {
     if (!uid || !data || typeof data !== 'object') return;
     
     const available = data.available || "";
     const checkedAt = data.checkedAt || data.timestamp || 0;
     
     if (isDeviceOnlineMessage(available) && Number(checkedAt) > fifteenMinutesAgo) {
-      activeDevicesForBadge.set(uid, {
+      activeDevicesFromAPI.set(uid, {
         timestamp: Number(checkedAt),
         checkedAt: Number(checkedAt),
         available: available,
         addedAt: now,
-        source: 'checkOnline_rtdb'
+        source: 'api_fallback'
       });
     }
   });
@@ -2163,17 +2208,52 @@ function processCheckOnlineDataForBadge(checkOnlineData) {
   updateActiveBadge();
 }
 
-// ✅ Initialize active badge
+// ✅ Process Socket active devices
+function processSocketActiveDevices(socketData) {
+  const now = Date.now();
+  const fifteenMinutesAgo = now - (15 * 60 * 1000);
+  
+  if (!socketData || typeof socketData !== 'object') {
+    console.log("No socket data to process");
+    return;
+  }
+  
+  // Clear only socket data, keep API data
+  activeDevicesFromSocket.clear();
+  
+  Object.entries(socketData).forEach(([uid, data]) => {
+    if (!uid || !data || typeof data !== 'object') return;
+    
+    const available = data.available || "";
+    const checkedAt = data.checkedAt || data.timestamp || 0;
+    
+    if (isDeviceOnlineMessage(available) && Number(checkedAt) > fifteenMinutesAgo) {
+      activeDevicesFromSocket.set(uid, {
+        timestamp: Number(checkedAt),
+        checkedAt: Number(checkedAt),
+        available: available,
+        addedAt: now,
+        source: 'socket_realtime'
+      });
+    }
+  });
+  
+  updateActiveBadge();
+}
+
+// ✅ Initialize active badge with dual sources
 async function initializeActiveBadge() {
-  console.log("📊 Initializing active badge...");
+  console.log("📊 Initializing active badge with dual sources...");
   
-  // Clear existing data
-  activeDevicesForBadge.clear();
+  // Clear all data
+  activeDevicesFromSocket.clear();
+  activeDevicesFromAPI.clear();
   
-  // ✅ SOURCE 1: Fetch from brosreply-all API
-  await fetchAllActiveDevices();
+  // ✅ SOURCE 1: API (Always fetch on load)
+  await fetchAllActiveDevicesFromAPI();
   
-  console.log(`📊 Active badge initialized: ${activeDevicesForBadge.size} devices`);
+  // ✅ SOURCE 2: Socket (Will be populated when socket connects)
+  console.log(`📊 Active badge initialized. API: ${activeDevicesFromAPI.size}, Socket: ${activeDevicesFromSocket.size}`);
 }
 
 // ✅ SINGLE CARD STATUS FUNCTIONS
@@ -2194,7 +2274,6 @@ function updateSingleCardStatus(uid, status) {
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> CHECKING...';
     button.disabled = true;
     
-    // Add response timer
     const deviceMeta = card.querySelector('.device-meta');
     if (deviceMeta) {
       let timerSpan = deviceMeta.querySelector('.response-timer');
@@ -2211,7 +2290,6 @@ function updateSingleCardStatus(uid, status) {
     button.classList.add('online');
     button.innerHTML = '<i class="fas fa-wifi"></i> ONLINE';
     
-    // Add online indicator
     const deviceMeta = card.querySelector('.device-meta');
     if (deviceMeta) {
       let onlineIndicator = deviceMeta.querySelector('.online-indicator');
@@ -2222,7 +2300,6 @@ function updateSingleCardStatus(uid, status) {
       }
     }
     
-    // Remove timer if exists
     const timerSpan = card.querySelector('.response-timer');
     if (timerSpan) timerSpan.remove();
     
@@ -2238,7 +2315,6 @@ function updateSingleCardStatus(uid, status) {
     button.classList.add('offline');
     button.innerHTML = '<i class="fas fa-times"></i> OFFLINE';
     
-    // Remove timer and indicator
     const timerSpan = card.querySelector('.response-timer');
     if (timerSpan) timerSpan.remove();
     
@@ -2257,7 +2333,6 @@ function updateSingleCardStatus(uid, status) {
     button.classList.add('pending');
     button.innerHTML = '<i class="fas fa-hourglass-half"></i> PENDING';
     
-    // Remove timer and indicator
     const timerSpan = card.querySelector('.response-timer');
     if (timerSpan) timerSpan.remove();
     
@@ -2276,11 +2351,9 @@ function resetSingleCardToPending(uid) {
     button.innerHTML = '<i class="fas fa-wifi"></i> CHECK ONLINE';
   }
   
-  // Remove indicator
   const onlineIndicator = card.querySelector('.online-indicator');
   if (onlineIndicator) onlineIndicator.remove();
   
-  // Remove from manual check status
   manualCheckStatus.delete(uid);
 }
 
@@ -2341,7 +2414,8 @@ async function deleteDevice(uid) {
       
       // Remove from all maps
       checkingDevices.delete(uid);
-      activeDevicesForBadge.delete(uid);
+      activeDevicesFromSocket.delete(uid);
+      activeDevicesFromAPI.delete(uid);
       manualCheckStatus.delete(uid);
       updateActiveBadge();
       
@@ -2359,7 +2433,7 @@ async function deleteDevice(uid) {
       hideDeleteConfirm();
       
       // Notify socket
-      if (socket) {
+      if (socket && socket.connected) {
         socket.emit('deviceDeleted', { uid: uid });
       }
     }
@@ -2550,7 +2624,7 @@ function formatDateOnly(timestamp) {
   });
 }
 
-// ✅ SOCKET LISTENERS
+// ✅ SOCKET LISTENERS WITH DUAL SOURCE SYSTEM
 function initSocketListeners() {
   try {
     const socketOptions = {
@@ -2569,17 +2643,18 @@ function initSocketListeners() {
     console.log("🔌 Connecting to socket...");
     socket = io(BASE_URL || undefined, socketOptions);
 
-    // ✅ SOURCE 1: checkOnline_all (For ACTIVE BADGE ONLY)
+    // ✅ SOURCE 1: checkOnline_all (SOCKET - Real-time updates)
     socket.on("checkOnline_all", (data) => {
-      console.log("📡 checkOnline_all received:", Object.keys(data || {}).length, "devices");
+      console.log("📡 Socket checkOnline_all received:", Object.keys(data || {}).length, "devices");
       if (data && typeof data === 'object') {
-        processCheckOnlineDataForBadge(data);
+        processSocketActiveDevices(data);
+        socketConnected = true;
       }
     });
     
-    // ✅ SOURCE 2: brosReplyUpdate (For ACTIVE BADGE ONLY)
+    // ✅ SOURCE 2: brosReplyUpdate (SOCKET - Individual updates)
     socket.on("brosReplyUpdate", (payload) => {
-      console.log("📡 brosReplyUpdate received:", payload);
+      console.log("📡 Socket brosReplyUpdate received:", payload);
       
       if (payload && payload.uid && payload.data) {
         const replyData = payload.data;
@@ -2587,10 +2662,10 @@ function initSocketListeners() {
         const available = replyData.available || "";
         const checkedAt = replyData.checkedAt || replyData.timestamp || Date.now();
         
-        // Add to active badge if it's an online message
-        addToActiveBadgeOnly(uid, Date.now(), checkedAt, available);
+        // Add to socket active badge
+        addToSocketActiveBadge(uid, Date.now(), checkedAt, available);
         
-        // ✅ SPECIAL CASE: If this is the device currently being manually checked, update its card too
+        // ✅ Update manual check if in progress
         if (currentReplyUid === uid) {
           const isOnlineReply = isDeviceOnlineMessage(available);
           
@@ -2604,7 +2679,6 @@ function initSocketListeners() {
             if (popupMessage) popupMessage.textContent = 'Device confirmed online';
             if (refreshBtn) refreshBtn.style.display = 'flex';
             
-            // Update the single card that's being checked
             updateSingleCardStatus(uid, 'online');
             clearCheckingTimer(uid);
           } else {
@@ -2691,7 +2765,8 @@ function initSocketListeners() {
         
         // Remove from all maps
         checkingDevices.delete(data.uid);
-        activeDevicesForBadge.delete(data.uid);
+        activeDevicesFromSocket.delete(data.uid);
+        activeDevicesFromAPI.delete(data.uid);
         manualCheckStatus.delete(data.uid);
         updateActiveBadge();
         
@@ -2710,6 +2785,9 @@ function initSocketListeners() {
     
     socket.on("connect_error", (err) => {
       console.warn("⚠️ Socket connection error:", err.message);
+      socketConnected = false;
+      // When socket fails, rely on API data only
+      console.log("📡 Socket disconnected, using API data only");
       if (err.message.includes("auth") || err.message.includes("token")) {
         console.log("🔑 Authentication failed, redirecting to login...");
         redirectToLogin();
@@ -2718,13 +2796,27 @@ function initSocketListeners() {
     
     socket.on("connect", () => {
       console.log("✅ Socket connected successfully with token");
+      socketConnected = true;
       
-      // Request initial checkOnline_all data for active badge
+      // Request initial checkOnline_all data from socket
       socket.emit("request_checkOnline_all");
     });
     
     socket.on("disconnect", (reason) => {
       console.log("❌ Socket disconnected:", reason);
+      socketConnected = false;
+      
+      // IMPORTANT: When socket disconnects, DO NOT clear data
+      // Keep existing socket data (it will expire naturally)
+      console.log("📡 Socket disconnected, but keeping existing socket data");
+      
+      // Fetch fresh data from API as fallback
+      setTimeout(() => {
+        if (!socketConnected) {
+          console.log("📡 Fetching fresh data from API due to socket disconnect");
+          fetchAllActiveDevicesFromAPI();
+        }
+      }, 2000);
     });
     
     return socket;
@@ -2752,7 +2844,6 @@ async function checkOnline(uid, event) {
     return;
   }
   
-  // Update SINGLE card status to checking
   updateSingleCardStatus(uid, 'checking');
   currentReplyUid = uid;
   showCheckPopup();
@@ -2806,15 +2897,13 @@ async function checkOnline(uid, event) {
     .then(result => {
       console.log("Bros Reply API response:", result);
       
-      // If we get immediate data, process it
       if (result.success && result.data) {
         const available = result.data.available || "";
         const checkedAt = result.data.checkedAt || timestamp;
         
         if (isDeviceOnlineMessage(available)) {
-          // Mark as online immediately
           updateSingleCardStatus(uid, 'online');
-          addToActiveBadgeOnly(uid, timestamp, checkedAt, available);
+          addToAPIActiveBadge(uid, timestamp, checkedAt, available);
           
           if (currentReplyUid === uid) {
             stopCountdown();
@@ -3089,7 +3178,7 @@ async function fetchDevices() {
     }
     updateLoadingCounter(allDevices.length);
     
-    // ✅ Initialize active badge
+    // ✅ Initialize active badge with dual sources
     await initializeActiveBadge();
     
     setTimeout(() => {
@@ -3177,6 +3266,28 @@ function renderList(searchQuery = '') {
   });
 }
 
+// ✅ SCROLL FIX FUNCTIONS
+function initScrollFix() {
+  let scrollTimeout;
+  let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  
+  window.addEventListener('scroll', function() {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Clear the timeout on scroll
+    clearTimeout(scrollTimeout);
+    
+    // Set a timeout to detect when scrolling stops
+    scrollTimeout = setTimeout(function() {
+      // Save current scroll position
+      scrollPosition = scrollTop;
+      localStorage.setItem('deviceListScrollPosition', scrollPosition);
+    }, 100);
+    
+    lastScrollTop = scrollTop;
+  });
+}
+
 // ✅ INITIALIZE EVERYTHING
 document.addEventListener('DOMContentLoaded', function() {
   console.log("✅ DOM Content Loaded");
@@ -3202,7 +3313,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize socket listeners
   socket = initSocketListeners();
   
-  // Run validity checks every 30 seconds (for active badge only)
+  // Initialize scroll fix
+  initScrollFix();
+  
+  // Run validity checks every 30 seconds
   setInterval(checkActiveBadgeValidity, 30000);
   
   // Setup search functionality
@@ -3241,8 +3355,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Refresh devices every 30 seconds
   setInterval(fetchDevices, 30000);
   
-  // Refresh active devices every minute
-  setInterval(fetchAllActiveDevices, 60000);
+  // Refresh active devices from API every minute (fallback)
+  setInterval(fetchAllActiveDevicesFromAPI, 60000);
   
   // Handle page visibility changes
   document.addEventListener('visibilitychange', function() {
@@ -3264,7 +3378,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// ✅ EXPORT FUNCTIONS TO WINDOW
 window.toggleLike = toggleLike;
 window.showDeleteConfirm = showDeleteConfirm;
 window.checkOnline = checkOnline;
