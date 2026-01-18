@@ -587,7 +587,6 @@ body {
   min-width: 0;
 }
 
-/* FIXED: Device version style - Make it stand out more */
 .device-version {
   font-size: 11px;
   color: #ffffff;
@@ -1861,14 +1860,9 @@ const DELETE_DEVICE_API = `${BASE_URL}/api/delete`;
 const LIKE_UNLIKE_API = `${BASE_URL}/api/likeunlike`;
 const LIKES_API = `${BASE_URL}/api/likes`;
 
-// ✅ NEW SERIAL APIs
-const INITIALIZE_SERIAL_SYSTEM_API = `${BASE_URL}/api/serial-system/initialize`;
-const SAVE_DEVICE_SERIAL_API = `${BASE_URL}/api/device-serial/save`;
-const GET_DEVICE_SERIAL_API = `${BASE_URL}/api/device-serial`;
-const BATCH_SERIALS_API = `${BASE_URL}/api/device-serials/batch`;
-const ALL_SERIALS_API = `${BASE_URL}/api/device-serials/all`;
-const SERIAL_SYSTEM_INFO_API = `${BASE_URL}/api/serial-system/info`;
-const FIX_MISSING_SERIALS_API = `${BASE_URL}/api/serial-system/fix-missing`;
+// ✅ SERIAL APIs (Based on your backend routes)
+const SAVE_SERIAL_API = `${BASE_URL}/api/device-serial`; // POST to save serial
+const GET_SERIAL_API = `${BASE_URL}/api/device-serial`; // GET by deviceId
 
 // ✅ GLOBAL VARIABLES
 let allDevices = [];
@@ -1898,15 +1892,14 @@ let socketConnected = false;
 let manualCheckStatus = new Map();
 
 // ✅ SERIAL SYSTEM VARIABLES
-let permanentSerialsCache = new Map();
+let permanentSerialsCache = new Map(); // deviceId -> {serialNo, deviceName, assignedAt, isPermanent}
 let serialSystemInitialized = false;
 let latestSerialNumber = 0;
-let totalSerialsInDB = 0;
 
 // ✅ LOCAL STORAGE KEYS
 const SERIAL_CACHE_KEY = 'device_serials_cache';
 const SERIAL_CACHE_TIMESTAMP = 'device_serials_cache_timestamp';
-const CACHE_EXPIRY = 5 * 60 * 1000;
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
 // ✅ AUTH FUNCTIONS
 function checkAuth() {
@@ -2046,7 +2039,7 @@ function handleCountdownEnd() {
   }
 }
 
-// ✅ SERIAL SYSTEM FUNCTIONS
+// ✅ SERIAL SYSTEM FUNCTIONS (FIXED FOR YOUR BACKEND)
 
 function loadSerialCacheFromLocalStorage() {
   try {
@@ -2085,121 +2078,123 @@ function saveSerialCacheToLocalStorage() {
   }
 }
 
-async function initializeSerialSystemIfNeeded() {
+// ✅ SIMPLE SERIAL FUNCTIONS FOR YOUR BACKEND
+async function saveSerialToBackend(deviceId, serialNo) {
   try {
-    console.log('🔄 Checking serial system status...');
-    const infoResponse = await fetch(SERIAL_SYSTEM_INFO_API, {
+    const response = await fetch(SAVE_SERIAL_API, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        deviceId: deviceId,
+        serialNo: serialNo
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ Serial saved to backend: ${deviceId} = ${serialNo}`);
+      return data.success;
+    } else {
+      console.warn(`Failed to save serial for ${deviceId}:`, response.status);
+      return false;
+    }
+  } catch (error) {
+    console.warn(`Error saving serial for ${deviceId}:`, error);
+    return false;
+  }
+}
+
+async function getSerialFromBackend(deviceId) {
+  try {
+    const response = await fetch(`${GET_SERIAL_API}/${deviceId}`, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json'
       }
     });
     
-    if (infoResponse.ok) {
-      const infoData = await infoResponse.json();
-      if (infoData.success) {
-        latestSerialNumber = infoData.systemInfo.currentSerial || 0;
-        totalSerialsInDB = infoData.systemInfo.totalDevicesInDB || 0;
-        serialSystemInitialized = totalSerialsInDB > 0;
-        
-        console.log(`📊 Serial System Info: ${totalSerialsInDB} devices in DB, Latest serial: ${latestSerialNumber}, Initialized: ${serialSystemInitialized}`);
-        
-        if (!serialSystemInitialized) {
-          console.log('⚠️ Serial system not initialized. Will initialize with devices.');
-        }
-        
-        return true;
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        console.log(`✅ Got serial from backend: ${deviceId} = ${data.serialNo}`);
+        return {
+          serialNo: data.serialNo || 0,
+          deviceId: deviceId,
+          source: 'backend'
+        };
       }
-    } else if (infoResponse.status === 404) {
-      console.log('⚠️ Serial system not found (404). Routes might not be registered.');
-      return false;
+    } else if (response.status === 404) {
+      console.log(`ℹ️ No serial found in backend for ${deviceId}`);
+      return null;
     }
   } catch (error) {
-    console.warn('Error getting serial system info:', error);
+    console.warn(`Error getting serial for ${deviceId}:`, error);
   }
-  return false;
+  return null;
 }
 
 async function getOrAssignSerialForDevice(deviceId, deviceData) {
+  // Check cache first
   if (permanentSerialsCache.has(deviceId)) {
     return permanentSerialsCache.get(deviceId);
   }
   
-  try {
-    const getResponse = await fetch(`${GET_DEVICE_SERIAL_API}/${deviceId}`, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
+  // Try to get from backend
+  const backendSerial = await getSerialFromBackend(deviceId);
+  
+  if (backendSerial) {
+    const serialInfo = {
+      serialNo: backendSerial.serialNo,
+      deviceId: deviceId,
+      deviceName: deviceData.brand || deviceId,
+      joinedTime: Number(deviceData.joinedAt || deviceData.installTime || Date.now()),
+      assignedAt: Date.now(),
+      isPermanent: true,
+      source: 'backend_existing'
+    };
     
-    if (getResponse.ok) {
-      const getData = await getResponse.json();
-      if (getData.success) {
-        const serialInfo = {
-          serialNo: getData.serialNo || 0,
-          deviceName: getData.deviceName || deviceId,
-          joinedTime: getData.joinedTime || 0,
-          assignedAt: getData.assignedAt || Date.now(),
-          isPermanent: getData.isPermanent || false,
-          source: 'db_existing'
-        };
-        
-        permanentSerialsCache.set(deviceId, serialInfo);
-        console.log(`✅ Found existing serial for ${deviceId}: ${serialInfo.serialNo}`);
-        return serialInfo;
-      }
-    }
-    
-    if (getResponse.status === 404) {
-      console.log(`🆕 Device ${deviceId} not found in DB, creating new serial...`);
-      const deviceName = `${deviceData.brand || ''} ${deviceData.model || ''}`.trim() || deviceId;
-      const joinedTime = Number(deviceData.joinedAt || deviceData.installTime || deviceData.timestamp || Date.now());
-      
-      const saveResponse = await fetch(SAVE_DEVICE_SERIAL_API, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          deviceId: deviceId,
-          deviceName: deviceName,
-          joinedTime: joinedTime
-        })
-      });
-      
-      if (saveResponse.ok) {
-        const saveData = await saveResponse.json();
-        if (saveData.success) {
-          const serialInfo = {
-            serialNo: saveData.serialNo || 0,
-            deviceName: deviceName,
-            joinedTime: joinedTime,
-            assignedAt: saveData.assignedAt || Date.now(),
-            isPermanent: true,
-            source: 'db_new'
-          };
-          
-          permanentSerialsCache.set(deviceId, serialInfo);
-          
-          latestSerialNumber = Math.max(latestSerialNumber, saveData.serialNo || 0);
-          
-          console.log(`🟢 NEW SERIAL SAVED TO DB: ${deviceId} = Serial ${serialInfo.serialNo}`);
-          return serialInfo;
-        }
-      } else {
-        console.warn(`Failed to save serial for ${deviceId}:`, saveResponse.status);
-      }
-    }
-    
-  } catch (error) {
-    console.warn(`Error getting/assigning serial for ${deviceId}:`, error);
+    permanentSerialsCache.set(deviceId, serialInfo);
+    console.log(`✅ Found existing serial in backend for ${deviceId}: ${serialInfo.serialNo}`);
+    return serialInfo;
   }
   
+  // If not found in backend, assign a new serial
+  console.log(`🆕 Device ${deviceId} not found in backend, assigning new serial...`);
+  
+  // Calculate the next serial number
+  const allSerials = Array.from(permanentSerialsCache.values()).map(s => s.serialNo);
+  const maxSerial = allSerials.length > 0 ? Math.max(...allSerials) : 0;
+  const nextSerial = maxSerial + 1;
+  
+  // Save to backend
+  const saved = await saveSerialToBackend(deviceId, nextSerial);
+  
+  if (saved) {
+    const serialInfo = {
+      serialNo: nextSerial,
+      deviceId: deviceId,
+      deviceName: deviceData.brand || deviceId,
+      joinedTime: Number(deviceData.joinedAt || deviceData.installTime || Date.now()),
+      assignedAt: Date.now(),
+      isPermanent: true,
+      source: 'backend_new'
+    };
+    
+    permanentSerialsCache.set(deviceId, serialInfo);
+    latestSerialNumber = Math.max(latestSerialNumber, nextSerial);
+    
+    console.log(`🟢 NEW SERIAL ASSIGNED: ${deviceId} = Serial ${nextSerial}`);
+    return serialInfo;
+  }
+  
+  // Fallback: temporary serial
   const tempSerial = Math.floor(Math.random() * 10000);
   const tempInfo = {
     serialNo: tempSerial,
+    deviceId: deviceId,
     deviceName: deviceData.brand || deviceId,
     joinedTime: Number(deviceData.joinedAt || deviceData.installTime || Date.now()),
     assignedAt: Date.now(),
@@ -2219,94 +2214,25 @@ async function processSerialsForAllDevices(devices) {
     return devices;
   }
   
-  const deviceIds = devices.map(device => 
-    device.id || device.uniqueid || device.uid || device.deviceId
-  ).filter(Boolean);
-  
-  if (deviceIds.length === 0) {
-    console.log('⚠️ No valid device IDs found');
-    return devices;
-  }
-  
-  console.log(`🔄 Processing serials for ${deviceIds.length} devices...`);
-  
-  try {
-    console.log(`📤 Requesting batch serials for ${deviceIds.length} devices...`);
-    const batchResponse = await fetch(BATCH_SERIALS_API, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ deviceIds: deviceIds })
-    });
-    
-    if (batchResponse.ok) {
-      const batchData = await batchResponse.json();
-      console.log('📥 Batch serials response:', batchData);
-      
-      if (batchData.success && batchData.data) {
-        Object.entries(batchData.data).forEach(([deviceId, serialData]) => {
-          permanentSerialsCache.set(deviceId, {
-            serialNo: serialData.serialNo || 0,
-            deviceName: serialData.deviceName || deviceId,
-            joinedTime: serialData.joinedTime || 0,
-            assignedAt: serialData.assignedAt || Date.now(),
-            isPermanent: serialData.isPermanent || false,
-            source: 'db_batch'
-          });
-        });
-        
-        console.log(`✅ Updated cache with ${Object.keys(batchData.data).length} serials from batch`);
-        
-        if (batchData.missingDevices && batchData.missingDevices.length > 0) {
-          console.log(`⚠️ ${batchData.missingDevices.length} devices missing serials`);
-          
-          const missingDevicesData = devices.filter(device => {
-            const deviceId = device.id || device.uniqueid || device.uid || device.deviceId;
-            return deviceId && batchData.missingDevices.includes(deviceId);
-          });
-          
-          if (missingDevicesData.length > 0) {
-            console.log(`🔄 Assigning serials to ${missingDevicesData.length} missing devices...`);
-            
-            for (let i = 0; i < missingDevicesData.length; i++) {
-              const device = missingDevicesData[i];
-              const deviceId = device.id || device.uniqueid || device.uid || device.deviceId;
-              
-              if (deviceId) {
-                const serialInfo = await getOrAssignSerialForDevice(deviceId, device);
-                console.log(`✅ Assigned serial ${serialInfo.serialNo} to ${deviceId} (${i+1}/${missingDevicesData.length})`);
-                
-                if (i < missingDevicesData.length - 1) {
-                  await new Promise(resolve => setTimeout(resolve, 100));
-                }
-              }
-            }
-          }
-        }
-      }
-    } else if (batchResponse.status === 404) {
-      console.warn('⚠️ Batch serials API not found (404). Routes might not be registered.');
-    } else {
-      console.warn('⚠️ Batch serials API failed:', batchResponse.status);
-    }
-  } catch (error) {
-    console.warn('⚠️ Batch serial processing error, continuing individually:', error);
-  }
+  console.log(`🔄 Processing serials for ${devices.length} devices...`);
   
   const processedDevices = [];
   
-  for (const device of devices) {
-    const deviceId = device.id || device.uniqueid || device.uid || device.deviceId;
+  // Process devices in batches to avoid overwhelming the backend
+  const batchSize = 5;
+  for (let i = 0; i < devices.length; i += batchSize) {
+    const batch = devices.slice(i, i + batchSize);
     
-    if (!deviceId) {
-      processedDevices.push(device);
-      continue;
-    }
-    
-    if (permanentSerialsCache.has(deviceId)) {
-      const serialInfo = permanentSerialsCache.get(deviceId);
+    for (const device of batch) {
+      const deviceId = device.id || device.uniqueid || device.uid || device.deviceId;
+      
+      if (!deviceId) {
+        processedDevices.push(device);
+        continue;
+      }
+      
+      const serialInfo = await getOrAssignSerialForDevice(deviceId, device);
+      
       processedDevices.push({
         ...device,
         permanentSerialNo: serialInfo.serialNo,
@@ -2314,27 +2240,11 @@ async function processSerialsForAllDevices(devices) {
         serialAssignedAt: serialInfo.assignedAt,
         serialSource: serialInfo.source
       });
-    } else {
-      console.warn(`⚠️ No serial found in cache for ${deviceId}, creating temporary`);
-      const tempSerial = Math.floor(Math.random() * 10000);
-      const tempInfo = {
-        serialNo: tempSerial,
-        deviceName: device.brand || deviceId,
-        joinedTime: Number(device.joinedAt || device.installTime || Date.now()),
-        assignedAt: Date.now(),
-        isPermanent: false,
-        source: 'temp_emergency'
-      };
-      
-      permanentSerialsCache.set(deviceId, tempInfo);
-      
-      processedDevices.push({
-        ...device,
-        permanentSerialNo: tempSerial,
-        hasPermanentSerial: false,
-        serialAssignedAt: Date.now(),
-        serialSource: 'temp_emergency'
-      });
+    }
+    
+    // Small delay between batches
+    if (i + batchSize < devices.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
   
@@ -2342,97 +2252,7 @@ async function processSerialsForAllDevices(devices) {
   return processedDevices;
 }
 
-async function fixMissingSerials(missingDevices) {
-  if (!missingDevices || missingDevices.length === 0) {
-    return;
-  }
-  
-  try {
-    console.log(`🛠 Fixing ${missingDevices.length} missing serials...`);
-    const fixResponse = await fetch(FIX_MISSING_SERIALS_API, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ devices: missingDevices })
-    });
-    
-    if (fixResponse.ok) {
-      const fixData = await fixResponse.json();
-      if (fixData.success && fixData.results) {
-        console.log(`✅ Fixed ${fixData.results.length} missing serials`);
-        
-        fixData.results.forEach(result => {
-          if (result.serialNo !== undefined) {
-            const deviceId = result.deviceId;
-            permanentSerialsCache.set(deviceId, {
-              serialNo: result.serialNo,
-              deviceName: result.deviceName || deviceId,
-              joinedTime: result.joinedTime || 0,
-              assignedAt: Date.now(),
-              isPermanent: true,
-              source: 'db_fixed'
-            });
-          }
-        });
-        
-        saveSerialCacheToLocalStorage();
-      }
-    }
-  } catch (error) {
-    console.warn('Error fixing missing serials:', error);
-  }
-}
-
-async function loadAllSerialsFromDB() {
-  try {
-    console.log('🔄 Loading all serials from DB...');
-    const response = await fetch(ALL_SERIALS_API, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      
-      if (data.success && Array.isArray(data.data)) {
-        permanentSerialsCache.clear();
-        
-        data.data.forEach(item => {
-          permanentSerialsCache.set(item.deviceId, {
-            serialNo: item.serialNo || 0,
-            deviceName: item.deviceName || item.deviceId,
-            joinedTime: item.joinedTime || 0,
-            assignedAt: item.assignedAt || Date.now(),
-            isPermanent: item.isPermanent || false,
-            source: 'db_full_load'
-          });
-        });
-        
-        if (data.data.length > 0) {
-          const serials = data.data.map(item => item.serialNo || 0);
-          latestSerialNumber = Math.max(...serials);
-          totalSerialsInDB = data.data.length;
-        }
-        
-        saveSerialCacheToLocalStorage();
-        
-        console.log(`✅ Loaded ${permanentSerialsCache.size} serials from DB, Latest: ${latestSerialNumber}`);
-        return true;
-      }
-    } else if (response.status === 404) {
-      console.log('ℹ️ All serials API not found (404). Serial system might not be initialized.');
-    }
-  } catch (error) {
-    console.warn('⚠️ Error loading all serials from DB:', error);
-  }
-  return false;
-}
-
-// ✅ FIXED: Sort devices with correct serial assignment
+// ✅ SORTING FUNCTION
 function sortDevicesWithPermanentSerials(devices) {
   // Separate devices with and without permanent serials
   const devicesWithSerials = [];
@@ -2469,7 +2289,7 @@ function sortDevicesWithPermanentSerials(devices) {
     }
   });
   
-  // FIX: Assign correct display serials
+  // Assign correct display serials
   const totalDevices = allSorted.length;
   
   return allSorted.map((device, index) => {
@@ -2479,7 +2299,6 @@ function sortDevicesWithPermanentSerials(devices) {
       displaySerial = device.permanentSerialNo;
     } else {
       // For devices without permanent serials, assign based on position
-      // This ensures the latest device gets the highest number
       displaySerial = totalDevices - 1 - index;
     }
     
@@ -2499,55 +2318,6 @@ function sortDevicesWithPermanentSerials(devices) {
       isPermanentSerial: device.hasPermanentSerial || false
     };
   });
-}
-
-async function initializeSerialSystemWithDevices(devices) {
-  try {
-    console.log(`🚀 Initializing serial system with ${devices.length} devices...`);
-    
-    const response = await fetch(INITIALIZE_SERIAL_SYSTEM_API, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ devices: devices })
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success) {
-        console.log(`✅ Serial system initialized! ${data.results.length} devices got serials`);
-        serialSystemInitialized = true;
-        latestSerialNumber = data.nextSerial || 0;
-        totalSerialsInDB = data.results.length;
-        
-        if (data.results && Array.isArray(data.results)) {
-          data.results.forEach(result => {
-            if (result.deviceId && result.serialNo !== undefined) {
-              permanentSerialsCache.set(result.deviceId, {
-                serialNo: result.serialNo,
-                deviceName: result.deviceName || result.deviceId,
-                joinedTime: result.joinedTime || Date.now(),
-                assignedAt: Date.now(),
-                isPermanent: true,
-                source: 'db_initialized'
-              });
-            }
-          });
-          
-          saveSerialCacheToLocalStorage();
-        }
-        
-        return true;
-      }
-    } else {
-      console.warn('Failed to initialize serial system:', response.status);
-    }
-  } catch (error) {
-    console.error('❌ Initialize serial system error:', error);
-  }
-  return false;
 }
 
 // ✅ ACTIVE BADGE SYSTEM
@@ -3365,7 +3135,6 @@ function renderDevice(d, index) {
   const isPending = manualStatus?.status === 'pending';
   const isOffline = manualStatus?.status === 'offline';
   
-  // FIXED: Use the correct display serial from sorted data
   const displaySerial = d.displaySerial !== undefined ? d.displaySerial : (allDevices.length - 1 - index);
   const hasPermanentSerial = d.isPermanentSerial || d.hasPermanentSerial || false;
   const isLatestDevice = d.isLatestDevice || (index === 0);
@@ -3535,14 +3304,9 @@ async function fetchDevices(isLoadMore = false) {
       console.log(`🔄 Processing ${devices.length} devices...`);
       updateLoaderProgress(50);
       
-      const systemInitialized = await initializeSerialSystemIfNeeded();
-      
-      if (!systemInitialized && devices.length > 0) {
-        console.log('🚀 Initializing serial system for the first time...');
-        const initialized = await initializeSerialSystemWithDevices(devices);
-        if (initialized) {
-          console.log('✅ Serial system initialized successfully');
-        }
+      const cacheLoaded = loadSerialCacheFromLocalStorage();
+      if (cacheLoaded) {
+        console.log(`✅ Loaded ${permanentSerialsCache.size} serials from cache`);
       }
       
       updateLoaderProgress(60);
@@ -3551,14 +3315,12 @@ async function fetchDevices(isLoadMore = false) {
       
       updateLoaderProgress(80);
       
-      // FIXED: Sort with correct serial assignment
       allDevices = sortDevicesWithPermanentSerials(devices);
       totalDevicesCount = allDevices.length;
       
       console.log(`✅ Loaded ${allDevices.length} devices with serials`);
       console.log(`✅ Permanent serials: ${allDevices.filter(d => d.hasPermanentSerial).length}`);
       console.log(`✅ Temporary serials: ${allDevices.filter(d => !d.hasPermanentSerial).length}`);
-      console.log(`✅ Latest serial number: ${allDevices.length > 0 ? allDevices[0].displaySerial : 'N/A'}`);
       
       updateLoaderProgress(90);
       
@@ -3689,7 +3451,6 @@ function renderList(searchQuery = '') {
     return;
   }
   
-  // FIXED: Apply sorting to the displayed devices
   const sortedDevicesToShow = sortDevicesWithPermanentSerials(devicesToShow);
   
   sortedDevicesToShow.forEach((d, index) => {
@@ -3803,8 +3564,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   initPopupEvents();
   
-  const cacheLoaded = loadSerialCacheFromLocalStorage();
-  
   socket = initSocketListeners();
   
   const loadMoreBtn = document.getElementById('loadMoreBtn');
@@ -3856,24 +3615,6 @@ document.addEventListener('DOMContentLoaded', async function() {
       fetchDevices(false);
     }
   }, 60000);
-  
-  setInterval(async () => {
-    if (document.visibilityState === 'visible' && allDevices.length > 0) {
-      console.log('🔄 Checking for missing serials...');
-      const devicesWithoutSerials = allDevices.filter(d => !d.hasPermanentSerial);
-      if (devicesWithoutSerials.length > 0) {
-        console.log(`Found ${devicesWithoutSerials.length} devices without permanent serials, fixing...`);
-        await fixMissingSerials(devicesWithoutSerials);
-      }
-    }
-  }, 5 * 60 * 1000);
-  
-  setInterval(async () => {
-    if (document.visibilityState === 'visible') {
-      console.log('🔄 Refreshing serial cache from DB...');
-      await loadAllSerialsFromDB();
-    }
-  }, 10 * 60 * 1000);
 });
 
 window.toggleLike = toggleLike;
