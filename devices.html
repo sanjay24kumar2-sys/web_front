@@ -127,6 +127,8 @@ body {
 .device-count,
 .active-badge {
   flex: 0 0 auto;
+  cursor: pointer;
+  user-select: none;
 }
 
 .device-count {
@@ -142,6 +144,18 @@ body {
   gap: 8px;
   min-width: 120px;
   justify-content: center;
+  transition: var(--transition);
+}
+
+.device-count:hover {
+  background: rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.device-count.active-filter {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 .active-badge {
@@ -157,10 +171,22 @@ body {
   gap: 8px;
   min-width: 150px;
   justify-content: center;
+  transition: var(--transition);
+}
+
+.active-badge:hover {
+  background: rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
 }
 
 .active-badge.active {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
+}
+
+.active-badge.active-filter {
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
 .device-count span,
@@ -1658,11 +1684,11 @@ body {
     
     <div class="top-bar">
       <div class="user-info">
-        <div class="device-count">
+        <div class="device-count" id="totalDevicesBtn">
           <i class="fas fa-mobile-alt"></i>
           Total: <span id="totalDevices">0</span>
         </div>
-        <div class="active-badge" id="activeCounter">
+        <div class="active-badge" id="activeCounterBtn">
           <i class="fas fa-clock"></i>
           Last 15 Min: <span class="active-count" id="activeCount">0</span>
         </div>
@@ -1803,6 +1829,9 @@ let allDeviceSerials = [];
 const SERIAL_CACHE_KEY = 'device_serials_cache';
 const SERIAL_CACHE_TIMESTAMP = 'device_serials_cache_timestamp';
 const CACHE_EXPIRY = 5 * 60 * 1000;
+
+// ✅ NEW: Filter state
+let currentFilter = 'all'; // 'all' or 'active'
 
 function checkAuth() {
   authToken = localStorage.getItem('mr_robot_token');
@@ -1960,7 +1989,6 @@ function loadSerialCacheFromLocalStorage() {
       }
     }
   } catch (error) {
-    console.warn('Error loading serial cache from localStorage');
   }
   return false;
 }
@@ -1971,7 +1999,6 @@ function saveSerialCacheToLocalStorage() {
     localStorage.setItem(SERIAL_CACHE_KEY, JSON.stringify(cacheObject));
     localStorage.setItem(SERIAL_CACHE_TIMESTAMP, Date.now().toString());
   } catch (error) {
-    console.warn('Error saving serial cache to localStorage');
   }
 }
 
@@ -2174,51 +2201,45 @@ function sortDevicesWithPermanentSerials(devices) {
       displaySerial = totalDevices - 1 - index;
     }
     
-    const isLatestDevice = device.hasPermanentSerial && device.permanentSerialNo === highestSerialNumber;
-    const isOldestDevice = index === totalDevices - 1;
-    
     return {
       ...device,
       displaySerial: displaySerial,
-      isLatestDevice: isLatestDevice,
-      isOldestDevice: isOldestDevice,
       isPermanentSerial: device.hasPermanentSerial || false
     };
   });
 }
 
-function updateActiveBadge() {
+// ✅ UPDATED: Active devices filter logic
+function getActiveDevices() {
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
-  
-  for (const [uid, deviceData] of activeDevicesFromSocket.entries()) {
-    if (deviceData.checkedAt < fifteenMinutesAgo) {
-      activeDevicesFromSocket.delete(uid);
-    }
-  }
-  
-  for (const [uid, deviceData] of activeDevicesFromAPI.entries()) {
-    if (deviceData.checkedAt < fifteenMinutesAgo) {
-      activeDevicesFromAPI.delete(uid);
-    }
-  }
   
   const combinedActiveDevices = new Map();
   
   for (const [uid, deviceData] of activeDevicesFromAPI.entries()) {
-    combinedActiveDevices.set(uid, deviceData);
-  }
-  
-  for (const [uid, socketData] of activeDevicesFromSocket.entries()) {
-    const existing = combinedActiveDevices.get(uid);
-    if (!existing || socketData.checkedAt > existing.checkedAt) {
-      combinedActiveDevices.set(uid, socketData);
+    if (deviceData.checkedAt >= fifteenMinutesAgo) {
+      combinedActiveDevices.set(uid, deviceData);
     }
   }
   
-  const activeCount = combinedActiveDevices.size;
+  for (const [uid, socketData] of activeDevicesFromSocket.entries()) {
+    if (socketData.checkedAt >= fifteenMinutesAgo) {
+      const existing = combinedActiveDevices.get(uid);
+      if (!existing || socketData.checkedAt > existing.checkedAt) {
+        combinedActiveDevices.set(uid, socketData);
+      }
+    }
+  }
+  
+  return combinedActiveDevices;
+}
+
+function updateActiveBadge() {
+  const activeDevices = getActiveDevices();
+  const activeCount = activeDevices.size;
+  
   const activeCountEl = document.getElementById('activeCount');
-  const badge = document.getElementById('activeCounter');
+  const badge = document.getElementById('activeCounterBtn');
   
   if (activeCountEl) activeCountEl.textContent = activeCount;
   if (badge) badge.classList.toggle('active', activeCount > 0);
@@ -2438,7 +2459,6 @@ async function deleteDevice(uid) {
     }
     
   } catch (error) {
-    console.error('Delete device error');
     hidePageLoading();
   }
 }
@@ -2657,6 +2677,11 @@ function initSocketListeners() {
         
         updateActiveBadge();
         socketConnected = true;
+        
+        if (currentFilter === 'active') {
+          const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
+          renderList(currentSearch);
+        }
       }
     });
     
@@ -3200,6 +3225,21 @@ async function fetchDevices(isLoadMore = false) {
   }
 }
 
+// ✅ UPDATED: Filter devices based on current filter
+function filterDevices(devices) {
+  if (currentFilter === 'active') {
+    const activeDevices = getActiveDevices();
+    const activeUids = Array.from(activeDevices.keys());
+    
+    return devices.filter(device => {
+      const deviceId = device.id || device.uniqueid || device.uid || device.deviceId;
+      return activeUids.includes(deviceId);
+    });
+  }
+  
+  return devices;
+}
+
 function renderList(searchQuery = '') {
   const q = searchQuery || (document.getElementById("search")?.value.toLowerCase() || '');
   const box = document.getElementById("devicesList");
@@ -3211,7 +3251,7 @@ function renderList(searchQuery = '') {
   box.innerHTML = "";
   deviceCardMap.clear();
   
-  const list = allDevices.filter(d => {
+  let list = allDevices.filter(d => {
     const searchStr = `
       ${d.brand || ''}
       ${d.model || ''}
@@ -3227,6 +3267,11 @@ function renderList(searchQuery = '') {
     return searchStr.includes(q);
   });
   
+  // Apply active filter if needed
+  if (currentFilter === 'active') {
+    list = filterDevices(list);
+  }
+  
   currentFilteredDevices = list;
   
   if (!list.length) {
@@ -3234,7 +3279,7 @@ function renderList(searchQuery = '') {
       <div class="empty">
         <i class="fas fa-search"></i>
         <h3>No devices found</h3>
-        <p>Try searching with a different term</p>
+        <p>${currentFilter === 'active' ? 'No active devices in the last 15 minutes' : 'Try searching with a different term'}</p>
       </div>
     `;
     document.getElementById('loadMoreContainer').style.display = 'none';
@@ -3250,7 +3295,7 @@ function renderList(searchQuery = '') {
       <div class="empty">
         <i class="fas fa-search"></i>
         <h3>No more devices to show</h3>
-        <p>All devices are displayed</p>
+        <p>All ${currentFilter === 'active' ? 'active' : ''} devices are displayed</p>
       </div>
     `;
     return;
@@ -3280,7 +3325,7 @@ function updateLoadMoreButton() {
   
   if (hasMoreDevices && totalCount > DEVICES_PER_PAGE) {
     loadMoreContainer.style.display = 'block';
-    loadMoreCount.textContent = `Showing ${displayedCount} of ${totalCount} devices`;
+    loadMoreCount.textContent = `Showing ${displayedCount} of ${totalCount} ${currentFilter === 'active' ? 'active' : ''} devices`;
     
     if (isLoading) {
       loadMoreBtn.classList.add('loading');
@@ -3314,6 +3359,7 @@ function saveScrollAndSearchState() {
   scrollPosition = window.scrollY;
   localStorage.setItem('deviceListScrollPosition', scrollPosition);
   localStorage.setItem('deviceListCurrentPage', currentPage);
+  localStorage.setItem('deviceListFilter', currentFilter);
   
   const searchInput = document.getElementById("search");
   if (searchInput) {
@@ -3325,6 +3371,7 @@ function restoreScrollAndSearchState() {
   const savedSearch = localStorage.getItem('deviceListSearchQuery') || '';
   const savedScroll = localStorage.getItem('deviceListScrollPosition') || 0;
   const savedPage = parseInt(localStorage.getItem('deviceListCurrentPage') || '1');
+  const savedFilter = localStorage.getItem('deviceListFilter') || 'all';
   
   const searchInput = document.getElementById("search");
   if (searchInput && savedSearch) {
@@ -3332,12 +3379,62 @@ function restoreScrollAndSearchState() {
   }
   
   currentPage = savedPage;
+  currentFilter = savedFilter;
+  
+  // Update filter buttons
+  updateFilterButtons();
   
   renderList(savedSearch);
   
   setTimeout(() => {
     window.scrollTo(0, parseInt(savedScroll));
   }, 50);
+}
+
+// ✅ NEW: Update filter button states
+function updateFilterButtons() {
+  const totalBtn = document.getElementById('totalDevicesBtn');
+  const activeBtn = document.getElementById('activeCounterBtn');
+  
+  if (totalBtn) {
+    totalBtn.classList.toggle('active-filter', currentFilter === 'all');
+  }
+  
+  if (activeBtn) {
+    activeBtn.classList.toggle('active-filter', currentFilter === 'active');
+  }
+}
+
+// ✅ NEW: Set filter function
+function setFilter(filterType) {
+  currentFilter = filterType;
+  currentPage = 1;
+  
+  updateFilterButtons();
+  
+  const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
+  renderList(currentSearch);
+  updateLoadMoreButton();
+  
+  saveScrollAndSearchState();
+}
+
+// ✅ NEW: Initialize filter button events
+function initFilterButtons() {
+  const totalBtn = document.getElementById('totalDevicesBtn');
+  const activeBtn = document.getElementById('activeCounterBtn');
+  
+  if (totalBtn) {
+    totalBtn.addEventListener('click', () => {
+      setFilter('all');
+    });
+  }
+  
+  if (activeBtn) {
+    activeBtn.addEventListener('click', () => {
+      setFilter('active');
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -3361,6 +3458,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (totalDevicesEl) totalDevicesEl.textContent = "0";
   
   initPopupEvents();
+  initFilterButtons();
   
   socket = initSocketListeners();
   
@@ -3399,7 +3497,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     localStorage.removeItem('deviceListScrollPosition');
     localStorage.removeItem('deviceListSearchQuery');
     localStorage.removeItem('deviceListCurrentPage');
+    localStorage.removeItem('deviceListFilter');
     currentPage = 1;
+    currentFilter = 'all';
   }
   
   setTimeout(() => {
