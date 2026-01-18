@@ -1140,30 +1140,27 @@ body {
 }
 
 /* ===== MINIMAL LOADING ANIMATION ===== */
+.page-loading {
+  text-align: center;
+  padding: 20px 0;
+  margin: 20px 0;
+  display: none;
+}
+
+.page-loading.show {
+  display: block;
+}
+
 .minimal-loader {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 9999;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 15px 25px;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--gray-200);
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  min-width: 180px;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s ease;
-}
-
-.minimal-loader.show {
-  opacity: 1;
-  visibility: visible;
+  padding: 15px 25px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--gray-200);
 }
 
 .minimal-loader-content {
@@ -1209,71 +1206,93 @@ body {
   transition: width 0.3s ease;
 }
 
-/* Initial loading screen (only shows for first load) */
-.initial-loading-screen {
+/* ===== LOAD MORE BUTTON ===== */
+.load-more-container {
+  text-align: center;
+  margin: 30px 0 20px;
+  padding: 0 16px;
+}
+
+.load-more-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-medium);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  border: 1px solid var(--primary-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.load-more-btn:hover {
+  background: linear-gradient(135deg, var(--primary-dark), #1e3a8a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
+.load-more-btn:active {
+  transform: translateY(0);
+}
+
+.load-more-btn.loading {
+  background: linear-gradient(135deg, var(--warning), #d97706);
+  cursor: not-allowed;
+  opacity: 0.9;
+}
+
+.load-more-btn i {
+  font-size: 14px;
+}
+
+.load-more-count {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+/* Initial loading animation (only shows if first 20 devices take time) */
+.initial-loader {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  background: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--gray-200);
+  display: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  transition: opacity 0.5s ease, visibility 0.5s ease;
+  gap: 12px;
+  min-width: 180px;
 }
 
-.initial-loading-screen.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.initial-loader {
-  text-align: center;
-  padding: 30px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.initial-loader.show {
+  display: flex;
 }
 
 .initial-loader-spinner {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 20px;
-  position: relative;
-}
-
-.initial-loader-spinner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--primary-light);
+  border-top: 3px solid var(--primary);
   border-radius: 50%;
-  border: 4px solid transparent;
-  border-top: 4px solid white;
-  border-right: 4px solid white;
-  animation: spin 1.5s linear infinite;
+  animation: spin 1s linear infinite;
 }
 
 .initial-loader-text {
-  color: white;
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 10px;
-  letter-spacing: 0.5px;
-}
-
-.initial-loader-subtext {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 13px;
-  font-weight: 500;
-  max-width: 200px;
-  line-height: 1.4;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -1418,12 +1437,8 @@ body {
     margin: 10px;
   }
   
-  .minimal-loader {
-    padding: 12px 20px;
-    min-width: 160px;
-  }
-  
-  .minimal-loader-text {
+  .load-more-btn {
+    padding: 10px 22px;
     font-size: 13px;
   }
 }
@@ -1554,22 +1569,13 @@ body {
     min-width: 85px;
   }
   
-  .minimal-loader {
-    padding: 10px 15px;
-    min-width: 140px;
-  }
-  
-  .minimal-loader-content {
-    gap: 8px;
-  }
-  
-  .minimal-loader-spinner {
-    width: 20px;
-    height: 20px;
-  }
-  
-  .minimal-loader-text {
+  .load-more-btn {
+    padding: 8px 18px;
     font-size: 12px;
+  }
+  
+  .load-more-count {
+    font-size: 11px;
   }
 }
 
@@ -1597,24 +1603,10 @@ body {
 
 <body>
 
-<!-- Initial Loading Screen (Only shows on first load) -->
-<div class="initial-loading-screen" id="initialLoadingScreen">
-  <div class="initial-loader">
-    <div class="initial-loader-spinner"></div>
-    <div class="initial-loader-text">Devices Live</div>
-    <div class="initial-loader-subtext">Loading devices...</div>
-  </div>
-</div>
-
-<!-- Minimal Loader (Shows during background operations) -->
-<div class="minimal-loader" id="minimalLoader">
-  <div class="minimal-loader-content">
-    <div class="minimal-loader-spinner"></div>
-    <div class="minimal-loader-text" id="minimalLoaderText">Loading...</div>
-  </div>
-  <div class="minimal-loader-progress">
-    <div class="minimal-loader-progress-bar" id="minimalLoaderProgress"></div>
-  </div>
+<!-- Initial Loader (only shows if first 20 devices take time) -->
+<div class="initial-loader" id="initialLoader">
+  <div class="initial-loader-spinner"></div>
+  <div class="initial-loader-text">Loading devices...</div>
 </div>
 
 <div class="check-popup" id="checkPopup">
@@ -1794,7 +1786,29 @@ Thank you for your patience and support.
 
 <div class="main">
   <div class="devices" id="devicesList">
-    <!-- Devices will be loaded here -->
+    <!-- First 20 devices will be loaded here instantly -->
+  </div>
+  
+  <!-- Loading indicator (shown below cards when loading more) -->
+  <div class="page-loading" id="pageLoading">
+    <div class="minimal-loader">
+      <div class="minimal-loader-content">
+        <div class="minimal-loader-spinner"></div>
+        <div class="minimal-loader-text">Loading more devices...</div>
+      </div>
+      <div class="minimal-loader-progress">
+        <div class="minimal-loader-progress-bar" id="minimalLoaderProgress"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Load More Button -->
+  <div class="load-more-container" id="loadMoreContainer" style="display: none;">
+    <button class="load-more-btn" id="loadMoreBtn">
+      <i class="fas fa-plus"></i>
+      Load More Devices
+    </button>
+    <div class="load-more-count" id="loadMoreCount"></div>
   </div>
 </div>
 
@@ -1838,6 +1852,13 @@ let sessionId = null;
 let currentDeleteUid = null;
 let deviceCardMap = new Map();
 
+// ✅ PAGINATION VARIABLES
+let currentPage = 1;
+const DEVICES_PER_PAGE = 20;
+let isLoading = false;
+let hasMoreDevices = false;
+let totalDevicesCount = 0;
+
 // ✅ DUAL SOURCE SYSTEM - FIXED
 let activeDevicesFromSocket = new Map();
 let activeDevicesFromAPI = new Map();
@@ -1845,12 +1866,6 @@ let socketConnected = false;
 
 // ✅ CHECKING STATUS for manual check
 let manualCheckStatus = new Map();
-
-// ✅ LOADING SYSTEM
-let loadingTimeout = null;
-let initialLoadComplete = false;
-let minimalLoaderVisible = false;
-let loadingProgress = 0;
 
 // ✅ AUTH FUNCTIONS
 function checkAuth() {
@@ -1875,86 +1890,39 @@ function redirectToLogin() {
   window.location.href = 'index.html';
 }
 
-// ✅ MINIMAL LOADING FUNCTIONS
-function showMinimalLoader(text = "Loading...") {
-  clearLoadingTimeout();
-  
-  if (!minimalLoaderVisible) {
-    const loader = document.getElementById('minimalLoader');
-    const loaderText = document.getElementById('minimalLoaderText');
-    const progressBar = document.getElementById('minimalLoaderProgress');
-    
-    if (loaderText) loaderText.textContent = text;
-    if (progressBar) progressBar.style.width = '0%';
-    
-    loadingProgress = 0;
-    
-    setTimeout(() => {
-      if (loader) {
-        loader.classList.add('show');
-        minimalLoaderVisible = true;
-      }
-    }, 100);
-    
-    // Progress animation
-    const progressInterval = setInterval(() => {
-      if (minimalLoaderVisible && loadingProgress < 90) {
-        loadingProgress += 1;
-        if (progressBar) progressBar.style.width = `${loadingProgress}%`;
-      } else {
-        clearInterval(progressInterval);
-      }
-    }, 100);
-    
-    loadingTimeout = setTimeout(() => {
-      hideMinimalLoader();
-    }, 15000); // Auto-hide after 15 seconds
+// ✅ LOADING FUNCTIONS
+function showInitialLoader() {
+  const loader = document.getElementById('initialLoader');
+  if (loader) {
+    loader.classList.add('show');
   }
 }
 
-function hideMinimalLoader() {
-  clearLoadingTimeout();
-  
-  const loader = document.getElementById('minimalLoader');
-  const progressBar = document.getElementById('minimalLoaderProgress');
-  
-  if (minimalLoaderVisible && loader) {
-    if (progressBar) progressBar.style.width = '100%';
-    
-    setTimeout(() => {
-      loader.classList.remove('show');
-      minimalLoaderVisible = false;
-      loadingProgress = 0;
-    }, 300);
+function hideInitialLoader() {
+  const loader = document.getElementById('initialLoader');
+  if (loader) {
+    loader.classList.remove('show');
   }
 }
 
-function clearLoadingTimeout() {
-  if (loadingTimeout) {
-    clearTimeout(loadingTimeout);
-    loadingTimeout = null;
+function showPageLoading() {
+  const pageLoading = document.getElementById('pageLoading');
+  if (pageLoading) {
+    pageLoading.classList.add('show');
   }
 }
 
-function updateMinimalLoaderProgress(progress) {
-  loadingProgress = Math.min(progress, 100);
+function hidePageLoading() {
+  const pageLoading = document.getElementById('pageLoading');
+  if (pageLoading) {
+    pageLoading.classList.remove('show');
+  }
+}
+
+function updateLoaderProgress(percent) {
   const progressBar = document.getElementById('minimalLoaderProgress');
   if (progressBar) {
-    progressBar.style.width = `${loadingProgress}%`;
-  }
-}
-
-// ✅ INITIAL LOADING SCREEN
-function hideInitialLoadingScreen() {
-  const initialScreen = document.getElementById('initialLoadingScreen');
-  if (initialScreen) {
-    initialScreen.classList.add('hidden');
-    
-    setTimeout(() => {
-      if (initialScreen.parentNode) {
-        initialScreen.parentNode.removeChild(initialScreen);
-      }
-    }, 500);
+    progressBar.style.width = `${percent}%`;
   }
 }
 
@@ -2400,7 +2368,7 @@ function hideDeleteConfirm() {
 
 async function deleteDevice(uid) {
   try {
-    showMinimalLoader("Deleting device...");
+    showPageLoading();
     
     const response = await fetch(`${DELETE_DEVICE_API}/${uid}`, {
       method: 'DELETE',
@@ -2442,15 +2410,20 @@ async function deleteDevice(uid) {
       manualCheckStatus.delete(uid);
       updateActiveBadge();
       
+      totalDevicesCount = allDevices.length;
+      
       const totalDevicesEl = document.getElementById('totalDevices');
       if (totalDevicesEl) {
-        totalDevicesEl.textContent = allDevices.length;
+        totalDevicesEl.textContent = totalDevicesCount;
       }
       
+      hidePageLoading();
+      hideDeleteConfirm();
+      
+      // Re-render with current page
       const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
       renderList(currentSearch);
-      
-      hideDeleteConfirm();
+      updateLoadMoreButton();
       
       if (socket && socket.connected) {
         socket.emit('deviceDeleted', { uid: uid });
@@ -2459,8 +2432,7 @@ async function deleteDevice(uid) {
     
   } catch (error) {
     console.error('Delete device error:', error);
-  } finally {
-    hideMinimalLoader();
+    hidePageLoading();
   }
 }
 
@@ -2713,13 +2685,15 @@ function initSocketListeners() {
         
         allDevices = assignSerialNumbers(allDevices);
         
+        totalDevicesCount = allDevices.length;
         const totalDevicesEl = document.getElementById('totalDevices');
         if (totalDevicesEl) {
-          totalDevicesEl.textContent = allDevices.length;
+          totalDevicesEl.textContent = totalDevicesCount;
         }
         
         const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
         renderList(currentSearch);
+        updateLoadMoreButton();
         
         setTimeout(() => {
           window.scrollTo(0, scrollPosition);
@@ -2776,13 +2750,15 @@ function initSocketListeners() {
         manualCheckStatus.delete(data.uid);
         updateActiveBadge();
         
+        totalDevicesCount = allDevices.length;
         const totalDevicesEl = document.getElementById('totalDevices');
         if (totalDevicesEl) {
-          totalDevicesEl.textContent = allDevices.length;
+          totalDevicesEl.textContent = totalDevicesCount;
         }
         
         const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
         renderList(currentSearch);
+        updateLoadMoreButton();
       }
     });
     
@@ -3081,11 +3057,21 @@ function renderDevice(d, index) {
   return card;
 }
 
-// ✅ FETCH DEVICES WITH PROGRESS
-async function fetchDevices() {
+// ✅ FETCH DEVICES WITH PAGINATION
+async function fetchDevices(isLoadMore = false) {
+  if (isLoading) return;
+  
+  if (!isLoadMore) {
+    // First load - show initial loader for 1 second max
+    showInitialLoader();
+    isLoading = true;
+  } else {
+    // Load more - show page loading
+    showPageLoading();
+    updateLoaderProgress(30);
+  }
+  
   try {
-    showMinimalLoader("Loading devices...");
-    
     const res = await fetch(DEVICE_API, {
       headers: { 
         'Authorization': `Bearer ${authToken}`,
@@ -3104,76 +3090,163 @@ async function fetchDevices() {
     
     const data = await res.json();
     
-    allDevices = (data.data || []).sort((a, b) => {
-      const timeA = Number(b.joinedAt || b.installTime || 0);
-      const timeB = Number(a.joinedAt || a.installTime || 0);
-      return timeA - timeB;
-    });
-    
-    updateMinimalLoaderProgress(50);
-    
-    try {
-      const devicesWithLikes = await Promise.all(
-        allDevices.map(async (device) => {
-          const uid = device.id || device.uniqueid || device.uid || device.deviceId;
-          if (!uid) return device;
-          
-          try {
-            const likesRes = await fetch(`${LIKES_API}/${uid}`, {
-              headers: { 'Authorization': `Bearer ${authToken}` }
-            });
-            
-            if (likesRes.ok) {
-              const likesData = await likesRes.json();
-              if (likesData.success) {
-                return { ...device, likedByUser: likesData.likedByUser || false };
+    if (!isLoadMore) {
+      // First load - get all devices but only show first 20
+      allDevices = (data.data || []).sort((a, b) => {
+        const timeA = Number(b.joinedAt || b.installTime || 0);
+        const timeB = Number(a.joinedAt || a.installTime || 0);
+        return timeA - timeB;
+      });
+      
+      totalDevicesCount = allDevices.length;
+      
+      updateLoaderProgress(50);
+      
+      // Try to fetch likes (non-blocking)
+      setTimeout(async () => {
+        try {
+          const devicesWithLikes = await Promise.all(
+            allDevices.slice(0, 20).map(async (device) => {
+              const uid = device.id || device.uniqueid || device.uid || device.deviceId;
+              if (!uid) return device;
+              
+              try {
+                const likesRes = await fetch(`${LIKES_API}/${uid}`, {
+                  headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (likesRes.ok) {
+                  const likesData = await likesRes.json();
+                  if (likesData.success) {
+                    return { ...device, likedByUser: likesData.likedByUser || false };
+                  }
+                }
+              } catch (err) {
+                console.warn(`Failed to fetch likes for ${uid}:`, err);
               }
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch likes for ${uid}:`, err);
-          }
+              
+              return device;
+            })
+          );
           
-          return device;
-        })
-      );
+          // Update only first 20 devices with likes
+          allDevices.splice(0, 20, ...devicesWithLikes);
+        } catch (likesError) {
+          console.warn("Could not fetch likes:", likesError);
+        }
+        
+        updateLoaderProgress(80);
+        
+        allDevices = assignSerialNumbers(allDevices);
+        
+        const totalDevicesEl = document.getElementById('totalDevices');
+        if (totalDevicesEl) {
+          totalDevicesEl.textContent = totalDevicesCount;
+        }
+        
+        await initializeActiveBadge();
+        updateLoaderProgress(100);
+        
+        // Show first 20 devices immediately
+        const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
+        renderList(currentSearch);
+        updateLoadMoreButton();
+        
+        setTimeout(() => {
+          hideInitialLoader();
+          hidePageLoading();
+          isLoading = false;
+          
+          restoreScrollAndSearchState();
+        }, 300);
+      }, 300);
       
-      allDevices = devicesWithLikes;
-    } catch (likesError) {
-      console.warn("Could not fetch likes:", likesError);
-    }
-    
-    updateMinimalLoaderProgress(75);
-    
-    allDevices = assignSerialNumbers(allDevices);
-    
-    const totalDevicesEl = document.getElementById('totalDevices');
-    if (totalDevicesEl) {
-      totalDevicesEl.textContent = allDevices.length;
-    }
-    
-    await initializeActiveBadge();
-    updateMinimalLoaderProgress(90);
-    
-    // Show devices immediately
-    const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
-    renderList(currentSearch);
-    
-    updateMinimalLoaderProgress(100);
-    
-    setTimeout(() => {
-      hideMinimalLoader();
+    } else {
+      // Load more - update all devices list
+      const newDevices = (data.data || []).sort((a, b) => {
+        const timeA = Number(b.joinedAt || b.installTime || 0);
+        const timeB = Number(a.joinedAt || a.installTime || 0);
+        return timeA - timeB;
+      });
       
-      if (!initialLoadComplete) {
-        hideInitialLoadingScreen();
-        initialLoadComplete = true;
+      allDevices = newDevices;
+      totalDevicesCount = allDevices.length;
+      
+      updateLoaderProgress(60);
+      
+      // Update likes for newly loaded devices
+      const startIndex = (currentPage - 1) * DEVICES_PER_PAGE;
+      const endIndex = startIndex + DEVICES_PER_PAGE;
+      const devicesToUpdate = allDevices.slice(startIndex, endIndex);
+      
+      try {
+        const updatedDevices = await Promise.all(
+          devicesToUpdate.map(async (device) => {
+            const uid = device.id || device.uniqueid || device.uid || device.deviceId;
+            if (!uid) return device;
+            
+            try {
+              const likesRes = await fetch(`${LIKES_API}/${uid}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+              });
+              
+              if (likesRes.ok) {
+                const likesData = await likesRes.json();
+                if (likesData.success) {
+                  return { ...device, likedByUser: likesData.likedByUser || false };
+                }
+              }
+            } catch (err) {
+              console.warn(`Failed to fetch likes for ${uid}:`, err);
+            }
+            
+            return device;
+          })
+        );
+        
+        // Update the devices in allDevices array
+        updatedDevices.forEach((updatedDevice, index) => {
+          const actualIndex = startIndex + index;
+          if (actualIndex < allDevices.length) {
+            allDevices[actualIndex] = updatedDevice;
+          }
+        });
+      } catch (likesError) {
+        console.warn("Could not fetch likes for load more:", likesError);
       }
       
-      restoreScrollAndSearchState();
-    }, 300);
+      updateLoaderProgress(80);
+      
+      allDevices = assignSerialNumbers(allDevices);
+      
+      const totalDevicesEl = document.getElementById('totalDevices');
+      if (totalDevicesEl) {
+        totalDevicesEl.textContent = totalDevicesCount;
+      }
+      
+      updateLoaderProgress(100);
+      
+      const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
+      renderList(currentSearch);
+      updateLoadMoreButton();
+      
+      setTimeout(() => {
+        hidePageLoading();
+        isLoading = false;
+        
+        // Scroll to show newly loaded devices
+        const devicesContainer = document.querySelector('.devices');
+        if (devicesContainer && devicesContainer.children.length > 0) {
+          const lastDevice = devicesContainer.children[devicesContainer.children.length - 1];
+          lastDevice.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 300);
+    }
     
   } catch (err) {
     console.error("❌ fetchDevices error:", err);
     allDevices = [];
+    totalDevicesCount = 0;
     
     const totalDevicesEl = document.getElementById('totalDevices');
     if (totalDevicesEl) {
@@ -3181,18 +3254,19 @@ async function fetchDevices() {
     }
     
     updateActiveBadge();
-    hideMinimalLoader();
+    hideInitialLoader();
+    hidePageLoading();
+    isLoading = false;
     
-    if (!initialLoadComplete) {
-      hideInitialLoadingScreen();
-      initialLoadComplete = true;
+    if (!isLoadMore) {
+      const currentSearch = document.getElementById("search")?.value.toLowerCase() || '';
+      renderList(currentSearch);
+      updateLoadMoreButton();
     }
-    
-    renderList();
   }
 }
 
-// ✅ RENDER LIST
+// ✅ RENDER LIST WITH PAGINATION
 function renderList(searchQuery = '') {
   const q = searchQuery || (document.getElementById("search")?.value.toLowerCase() || '');
   const box = document.getElementById("devicesList");
@@ -3232,21 +3306,89 @@ function renderList(searchQuery = '') {
         <p>Try searching with a different term</p>
       </div>
     `;
+    document.getElementById('loadMoreContainer').style.display = 'none';
     return;
   }
   
-  const filteredWithSerial = assignSerialNumbers(list);
+  // Calculate pagination
+  const startIndex = 0;
+  const endIndex = currentPage * DEVICES_PER_PAGE;
+  const devicesToShow = list.slice(startIndex, endIndex);
+  
+  if (devicesToShow.length === 0) {
+    box.innerHTML = `
+      <div class="empty">
+        <i class="fas fa-search"></i>
+        <h3>No more devices to show</h3>
+        <p>All devices are displayed</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const filteredWithSerial = assignSerialNumbers(devicesToShow);
   
   filteredWithSerial.forEach((d, index) => {
     const card = renderDevice(d, index);
     box.appendChild(card);
   });
+  
+  // Check if there are more devices to load
+  hasMoreDevices = list.length > endIndex;
+  updateLoadMoreButton();
+}
+
+// ✅ UPDATE LOAD MORE BUTTON
+function updateLoadMoreButton() {
+  const loadMoreContainer = document.getElementById('loadMoreContainer');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  const loadMoreCount = document.getElementById('loadMoreCount');
+  
+  if (!loadMoreContainer || !loadMoreBtn || !loadMoreCount) return;
+  
+  const list = currentFilteredDevices;
+  const displayedCount = Math.min(currentPage * DEVICES_PER_PAGE, list.length);
+  const totalCount = list.length;
+  
+  if (hasMoreDevices && totalCount > DEVICES_PER_PAGE) {
+    loadMoreContainer.style.display = 'block';
+    loadMoreCount.textContent = `Showing ${displayedCount} of ${totalCount} devices`;
+    
+    if (isLoading) {
+      loadMoreBtn.classList.add('loading');
+      loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+      loadMoreBtn.disabled = true;
+    } else {
+      loadMoreBtn.classList.remove('loading');
+      loadMoreBtn.innerHTML = '<i class="fas fa-plus"></i> Load More Devices';
+      loadMoreBtn.disabled = false;
+    }
+  } else {
+    loadMoreContainer.style.display = 'none';
+  }
+}
+
+// ✅ LOAD MORE FUNCTION
+function loadMoreDevices() {
+  if (isLoading || !hasMoreDevices) return;
+  
+  currentPage++;
+  isLoading = true;
+  updateLoadMoreButton();
+  
+  // Simulate loading with a small delay for better UX
+  setTimeout(() => {
+    renderList(document.getElementById("search")?.value.toLowerCase() || '');
+    isLoading = false;
+    updateLoadMoreButton();
+  }, 500);
 }
 
 // ✅ SCROLL & SEARCH STATE MANAGEMENT
 function saveScrollAndSearchState() {
   scrollPosition = window.scrollY;
   localStorage.setItem('deviceListScrollPosition', scrollPosition);
+  localStorage.setItem('deviceListCurrentPage', currentPage);
   
   const searchInput = document.getElementById("search");
   if (searchInput) {
@@ -3257,11 +3399,14 @@ function saveScrollAndSearchState() {
 function restoreScrollAndSearchState() {
   const savedSearch = localStorage.getItem('deviceListSearchQuery') || '';
   const savedScroll = localStorage.getItem('deviceListScrollPosition') || 0;
+  const savedPage = parseInt(localStorage.getItem('deviceListCurrentPage') || '1');
   
   const searchInput = document.getElementById("search");
   if (searchInput && savedSearch) {
     searchInput.value = savedSearch;
   }
+  
+  currentPage = savedPage;
   
   renderList(savedSearch);
   
@@ -3287,6 +3432,12 @@ document.addEventListener('DOMContentLoaded', function() {
   initPopupEvents();
   socket = initSocketListeners();
   
+  // Initialize load more button
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', loadMoreDevices);
+  }
+  
   // Run validity checks every 30 seconds
   setInterval(checkActiveBadgeValidity, 30000);
   
@@ -3297,7 +3448,10 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener("input", function() {
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
+        // Reset to first page when searching
+        currentPage = 1;
         localStorage.setItem('deviceListSearchQuery', this.value);
+        localStorage.setItem('deviceListCurrentPage', '1');
         renderList();
       }, 300);
     });
@@ -3305,7 +3459,9 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener("keydown", function(e) {
       if (e.key === 'Escape') {
         this.value = '';
+        currentPage = 1;
         localStorage.setItem('deviceListSearchQuery', '');
+        localStorage.setItem('deviceListCurrentPage', '1');
         renderList();
       }
     });
@@ -3315,15 +3471,19 @@ document.addEventListener('DOMContentLoaded', function() {
   if (navigationEntries.length > 0 && navigationEntries[0].type !== "back_forward") {
     localStorage.removeItem('deviceListScrollPosition');
     localStorage.removeItem('deviceListSearchQuery');
+    localStorage.removeItem('deviceListCurrentPage');
+    currentPage = 1;
   }
   
   // Start loading devices
   setTimeout(() => {
-    fetchDevices();
-  }, 500);
+    fetchDevices(false);
+  }, 300);
   
   // Refresh devices every 30 seconds
-  setInterval(fetchDevices, 30000);
+  setInterval(() => {
+    fetchDevices(false);
+  }, 30000);
   
   // Refresh active devices from API every 2 minutes (fallback)
   setInterval(fetchAllActiveDevicesFromAPI, 120000);
