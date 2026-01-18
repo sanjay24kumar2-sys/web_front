@@ -587,7 +587,6 @@ body {
   min-width: 0;
 }
 
-/* FIXED: Device version style - Make it stand out more */
 .device-version {
   font-size: 11px;
   color: #ffffff;
@@ -2432,7 +2431,7 @@ async function loadAllSerialsFromDB() {
   return false;
 }
 
-// ✅ FIXED: Sort devices with correct serial assignment
+// ✅ CORRECTED: Sort devices with proper serial logic
 function sortDevicesWithPermanentSerials(devices) {
   // Separate devices with and without permanent serials
   const devicesWithSerials = [];
@@ -2446,7 +2445,7 @@ function sortDevicesWithPermanentSerials(devices) {
     }
   });
   
-  // Sort devices with permanent serials by serial number DESC (latest first)
+  // Sort devices with permanent serials by serial number DESC (highest first)
   devicesWithSerials.sort((a, b) => {
     return (b.permanentSerialNo || 0) - (a.permanentSerialNo || 0);
   });
@@ -2458,47 +2457,19 @@ function sortDevicesWithPermanentSerials(devices) {
     return timeA - timeB;
   });
   
-  // Combine: permanent serials first, then temporary
+  // Combine: permanent serials first (sorted DESC), then temporary serials
   const allSorted = [...devicesWithSerials, ...devicesWithoutSerials];
   
-  // Calculate the ACTUAL highest serial number for "NEW" display
+  // Find the highest serial number for reference
   let highestSerial = 0;
-  devicesWithSerials.forEach(device => {
-    if (device.permanentSerialNo > highestSerial) {
-      highestSerial = device.permanentSerialNo;
-    }
-  });
+  if (devicesWithSerials.length > 0) {
+    highestSerial = devicesWithSerials[0].permanentSerialNo || 0;
+  }
   
-  // FIX: Assign correct display serials
-  const totalDevices = allSorted.length;
+  console.log(`📊 Sorting: ${devicesWithSerials.length} with permanent serials, ${devicesWithoutSerials.length} without`);
+  console.log(`📊 Highest serial: ${highestSerial}`);
   
-  return allSorted.map((device, index) => {
-    let displaySerial;
-    
-    if (device.hasPermanentSerial) {
-      displaySerial = device.permanentSerialNo;
-    } else {
-      // For devices without permanent serials, assign based on position
-      // This ensures the latest device gets the highest number
-      displaySerial = totalDevices - 1 - index;
-    }
-    
-    // Determine if this is the latest device (highest serial)
-    const isLatestDevice = displaySerial === highestSerial || 
-                          (device.hasPermanentSerial && device.permanentSerialNo === highestSerial) ||
-                          index === 0;
-    
-    // Determine if this is the oldest device
-    const isOldestDevice = index === totalDevices - 1;
-    
-    return {
-      ...device,
-      displaySerial: displaySerial,
-      isLatestDevice: isLatestDevice,
-      isOldestDevice: isOldestDevice,
-      isPermanentSerial: device.hasPermanentSerial || false
-    };
-  });
+  return allSorted;
 }
 
 async function initializeSerialSystemWithDevices(devices) {
@@ -2548,6 +2519,85 @@ async function initializeSerialSystemWithDevices(devices) {
     console.error('❌ Initialize serial system error:', error);
   }
   return false;
+}
+
+// ✅ CORRECTED: Calculate display serials with proper pagination logic
+function calculateDisplaySerialsForPage(devicesOnPage, pageIndex, totalPages, allDevicesCount) {
+  if (!devicesOnPage || devicesOnPage.length === 0) return devicesOnPage;
+  
+  // Total devices in entire system
+  const totalDevices = allDevicesCount;
+  
+  // Calculate starting serial number for this page
+  // Last page (page with Serial 0) has the lowest serials
+  // First page (top page) has the highest serials
+  
+  // Find the highest serial number from permanent serials
+  let highestPermanentSerial = 0;
+  devicesOnPage.forEach(device => {
+    if (device.hasPermanentSerial && device.permanentSerialNo > highestPermanentSerial) {
+      highestPermanentSerial = device.permanentSerialNo;
+    }
+  });
+  
+  // If we have permanent serials, use them
+  if (highestPermanentSerial > 0) {
+    return devicesOnPage.map((device, index) => {
+      let displaySerial;
+      
+      if (device.hasPermanentSerial) {
+        // Use permanent serial number
+        displaySerial = device.permanentSerialNo;
+      } else {
+        // For devices without permanent serials, calculate based on position
+        // Devices with permanent serials get their actual numbers
+        // Others get calculated numbers that fit the sequence
+        displaySerial = highestPermanentSerial - (pageIndex * DEVICES_PER_PAGE + index);
+      }
+      
+      // Determine if this is the LATEST device in entire system
+      // Only if it's the FIRST device on the FIRST page
+      const isLatestDevice = pageIndex === 0 && index === 0 && displaySerial === highestPermanentSerial;
+      
+      // Determine if this is the OLDEST device in entire system
+      // Only if it's the LAST device on the LAST page AND has serial 0
+      const isLastPage = pageIndex === totalPages - 1;
+      const isLastDevice = index === devicesOnPage.length - 1;
+      const hasSerialZero = displaySerial === 0;
+      const isOldestDevice = isLastPage && isLastDevice && hasSerialZero;
+      
+      return {
+        ...device,
+        displaySerial: displaySerial,
+        isLatestDevice: isLatestDevice,
+        isOldestDevice: isOldestDevice,
+        isPermanentSerial: device.hasPermanentSerial || false
+      };
+    });
+  } else {
+    // No permanent serials, calculate based on position in entire system
+    return devicesOnPage.map((device, index) => {
+      // Calculate serial based on position in entire sorted list
+      const globalIndex = pageIndex * DEVICES_PER_PAGE + index;
+      const displaySerial = totalDevices - 1 - globalIndex;
+      
+      // Determine if this is the LATEST device (first device on first page)
+      const isLatestDevice = pageIndex === 0 && index === 0;
+      
+      // Determine if this is the OLDEST device (last device on last page with serial 0)
+      const isLastPage = pageIndex === totalPages - 1;
+      const isLastDevice = index === devicesOnPage.length - 1;
+      const isOldestDevice = isLastPage && isLastDevice && displaySerial === 0;
+      
+      return {
+        ...device,
+        displaySerial: displaySerial,
+        isLatestDevice: isLatestDevice,
+        isOldestDevice: isOldestDevice,
+        isPermanentSerial: false
+      };
+    });
+  }
 }
 
 // ✅ ACTIVE BADGE SYSTEM
@@ -3345,8 +3395,8 @@ async function checkOnline(uid, event) {
   }
 }
 
-// ✅ RENDER DEVICE CARD WITH CORRECT SERIAL
-function renderDevice(d, index) {
+// ✅ CORRECTED: RENDER DEVICE CARD WITH PROPER SERIAL LOGIC
+function renderDevice(d, index, totalDevicesCount) {
   const uid = d.id || d.uniqueid || d.uid || d.deviceId || d.uniqueId || d.deviceID;
   const brand = d.brand || "Unknown";
   const model = d.model || "";
@@ -3365,11 +3415,13 @@ function renderDevice(d, index) {
   const isPending = manualStatus?.status === 'pending';
   const isOffline = manualStatus?.status === 'offline';
   
-  // FIXED: Use the correct display serial from sorted data
-  const displaySerial = d.displaySerial !== undefined ? d.displaySerial : (allDevices.length - 1 - index);
+  // Use the display serial calculated by our function
+  const displaySerial = d.displaySerial !== undefined ? d.displaySerial : (totalDevicesCount - 1 - index);
   const hasPermanentSerial = d.isPermanentSerial || d.hasPermanentSerial || false;
-  const isLatestDevice = d.isLatestDevice || (index === 0);
-  const isOldestDevice = d.isOldestDevice || (index === allDevices.length - 1);
+  
+  // These are now calculated CORRECTLY by calculateDisplaySerialsForPage()
+  const isLatestDevice = d.isLatestDevice || false;
+  const isOldestDevice = d.isOldestDevice || false;
   
   let badgeClass = "serial-badge";
   if (hasPermanentSerial) {
@@ -3551,14 +3603,12 @@ async function fetchDevices(isLoadMore = false) {
       
       updateLoaderProgress(80);
       
-      // FIXED: Sort with correct serial assignment
       allDevices = sortDevicesWithPermanentSerials(devices);
       totalDevicesCount = allDevices.length;
       
       console.log(`✅ Loaded ${allDevices.length} devices with serials`);
       console.log(`✅ Permanent serials: ${allDevices.filter(d => d.hasPermanentSerial).length}`);
       console.log(`✅ Temporary serials: ${allDevices.filter(d => !d.hasPermanentSerial).length}`);
-      console.log(`✅ Latest serial number: ${allDevices.length > 0 ? allDevices[0].displaySerial : 'N/A'}`);
       
       updateLoaderProgress(90);
       
@@ -3631,7 +3681,7 @@ async function fetchDevices(isLoadMore = false) {
   }
 }
 
-// ✅ RENDER LIST WITH PAGINATION
+// ✅ CORRECTED: RENDER LIST WITH PROPER SERIAL LOGIC
 function renderList(searchQuery = '') {
   const q = searchQuery || (document.getElementById("search")?.value.toLowerCase() || '');
   const box = document.getElementById("devicesList");
@@ -3689,11 +3739,24 @@ function renderList(searchQuery = '') {
     return;
   }
   
-  // FIXED: Apply sorting to the displayed devices
-  const sortedDevicesToShow = sortDevicesWithPermanentSerials(devicesToShow);
+  // Calculate total pages
+  const totalPages = Math.ceil(list.length / DEVICES_PER_PAGE);
+  const currentPageIndex = currentPage - 1; // Zero-based index
   
-  sortedDevicesToShow.forEach((d, index) => {
-    const card = renderDevice(d, index);
+  // Apply CORRECT serial calculation for this page
+  const devicesWithCorrectSerials = calculateDisplaySerialsForPage(
+    devicesToShow, 
+    currentPageIndex, 
+    totalPages,
+    list.length
+  );
+  
+  console.log(`📄 Page ${currentPage} of ${totalPages}: Showing ${devicesWithCorrectSerials.length} devices`);
+  console.log(`📊 First device serial: ${devicesWithCorrectSerials[0]?.displaySerial || 'N/A'}`);
+  console.log(`📊 Last device serial: ${devicesWithCorrectSerials[devicesWithCorrectSerials.length-1]?.displaySerial || 'N/A'}`);
+  
+  devicesWithCorrectSerials.forEach((d, index) => {
+    const card = renderDevice(d, index, list.length);
     box.appendChild(card);
   });
   
