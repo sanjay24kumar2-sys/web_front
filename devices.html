@@ -1860,7 +1860,7 @@ const DELETE_DEVICE_API = `${BASE_URL}/api/delete`;
 const LIKE_UNLIKE_API = `${BASE_URL}/api/likeunlike`;
 const LIKES_API = `${BASE_URL}/api/likes`;
 
-// ✅ SERIAL APIs (Based on your backend routes)
+// ✅ SERIAL APIs
 const SAVE_SERIAL_API = `${BASE_URL}/api/device-serial`; // POST to save serial
 const GET_SERIAL_API = `${BASE_URL}/api/device-serial`; // GET by deviceId
 
@@ -1893,8 +1893,8 @@ let manualCheckStatus = new Map();
 
 // ✅ SERIAL SYSTEM VARIABLES
 let permanentSerialsCache = new Map(); // deviceId -> {serialNo, deviceName, assignedAt, isPermanent}
-let serialSystemInitialized = false;
-let latestSerialNumber = 0;
+let highestSerialNumber = 0;
+let allDeviceSerials = []; // Array to track all assigned serials
 
 // ✅ LOCAL STORAGE KEYS
 const SERIAL_CACHE_KEY = 'device_serials_cache';
@@ -2039,7 +2039,7 @@ function handleCountdownEnd() {
   }
 }
 
-// ✅ SERIAL SYSTEM FUNCTIONS (FIXED FOR YOUR BACKEND)
+// ✅ SERIAL SYSTEM FUNCTIONS (FIXED - SAVES EACH DEVICE INDIVIDUALLY)
 
 function loadSerialCacheFromLocalStorage() {
   try {
@@ -2053,7 +2053,12 @@ function loadSerialCacheFromLocalStorage() {
       if (now - timestamp < CACHE_EXPIRY) {
         const cache = JSON.parse(cachedData);
         permanentSerialsCache = new Map(Object.entries(cache));
-        console.log(`✅ Loaded ${permanentSerialsCache.size} serials from localStorage cache`);
+        
+        // Update highest serial number from cache
+        const serials = Array.from(permanentSerialsCache.values()).map(s => s.serialNo);
+        highestSerialNumber = serials.length > 0 ? Math.max(...serials) : 0;
+        
+        console.log(`✅ Loaded ${permanentSerialsCache.size} serials from localStorage cache, Highest: ${highestSerialNumber}`);
         return true;
       } else {
         console.log('🔄 Serial cache expired, fetching fresh data');
@@ -2078,9 +2083,10 @@ function saveSerialCacheToLocalStorage() {
   }
 }
 
-// ✅ SIMPLE SERIAL FUNCTIONS FOR YOUR BACKEND
+// ✅ FIXED: Saves each device individually with proper serial
 async function saveSerialToBackend(deviceId, serialNo) {
   try {
+    console.log(`📤 Saving serial to backend: ${deviceId} = ${serialNo}`);
     const response = await fetch(SAVE_SERIAL_API, {
       method: 'POST',
       headers: {
@@ -2109,6 +2115,7 @@ async function saveSerialToBackend(deviceId, serialNo) {
 
 async function getSerialFromBackend(deviceId) {
   try {
+    console.log(`📥 Getting serial from backend for: ${deviceId}`);
     const response = await fetch(`${GET_SERIAL_API}/${deviceId}`, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -2136,6 +2143,31 @@ async function getSerialFromBackend(deviceId) {
   return null;
 }
 
+// ✅ FIXED: Get the next available serial number
+function getNextAvailableSerial() {
+  // Get all assigned serials
+  const assignedSerials = Array.from(permanentSerialsCache.values())
+    .map(s => s.serialNo)
+    .filter(s => s !== undefined && s !== null);
+  
+  if (assignedSerials.length === 0) {
+    return 0; // Start from 0
+  }
+  
+  // Find the highest serial
+  const maxSerial = Math.max(...assignedSerials);
+  
+  // Check for gaps in serial numbers
+  for (let i = 0; i <= maxSerial; i++) {
+    if (!assignedSerials.includes(i)) {
+      return i; // Found a gap, use it
+    }
+  }
+  
+  // No gaps found, use next number
+  return maxSerial + 1;
+}
+
 async function getOrAssignSerialForDevice(deviceId, deviceData) {
   // Check cache first
   if (permanentSerialsCache.has(deviceId)) {
@@ -2157,6 +2189,12 @@ async function getOrAssignSerialForDevice(deviceId, deviceData) {
     };
     
     permanentSerialsCache.set(deviceId, serialInfo);
+    
+    // Update highest serial
+    if (backendSerial.serialNo > highestSerialNumber) {
+      highestSerialNumber = backendSerial.serialNo;
+    }
+    
     console.log(`✅ Found existing serial in backend for ${deviceId}: ${serialInfo.serialNo}`);
     return serialInfo;
   }
@@ -2164,10 +2202,8 @@ async function getOrAssignSerialForDevice(deviceId, deviceData) {
   // If not found in backend, assign a new serial
   console.log(`🆕 Device ${deviceId} not found in backend, assigning new serial...`);
   
-  // Calculate the next serial number
-  const allSerials = Array.from(permanentSerialsCache.values()).map(s => s.serialNo);
-  const maxSerial = allSerials.length > 0 ? Math.max(...allSerials) : 0;
-  const nextSerial = maxSerial + 1;
+  // Get next available serial number
+  const nextSerial = getNextAvailableSerial();
   
   // Save to backend
   const saved = await saveSerialToBackend(deviceId, nextSerial);
@@ -2184,9 +2220,13 @@ async function getOrAssignSerialForDevice(deviceId, deviceData) {
     };
     
     permanentSerialsCache.set(deviceId, serialInfo);
-    latestSerialNumber = Math.max(latestSerialNumber, nextSerial);
     
-    console.log(`🟢 NEW SERIAL ASSIGNED: ${deviceId} = Serial ${nextSerial}`);
+    // Update highest serial
+    if (nextSerial > highestSerialNumber) {
+      highestSerialNumber = nextSerial;
+    }
+    
+    console.log(`🟢 NEW SERIAL ASSIGNED AND SAVED: ${deviceId} = Serial ${nextSerial}`);
     return serialInfo;
   }
   
@@ -2218,37 +2258,34 @@ async function processSerialsForAllDevices(devices) {
   
   const processedDevices = [];
   
-  // Process devices in batches to avoid overwhelming the backend
-  const batchSize = 5;
-  for (let i = 0; i < devices.length; i += batchSize) {
-    const batch = devices.slice(i, i + batchSize);
+  // Process devices one by one
+  for (let i = 0; i < devices.length; i++) {
+    const device = devices[i];
+    const deviceId = device.id || device.uniqueid || device.uid || device.deviceId;
     
-    for (const device of batch) {
-      const deviceId = device.id || device.uniqueid || device.uid || device.deviceId;
-      
-      if (!deviceId) {
-        processedDevices.push(device);
-        continue;
-      }
-      
-      const serialInfo = await getOrAssignSerialForDevice(deviceId, device);
-      
-      processedDevices.push({
-        ...device,
-        permanentSerialNo: serialInfo.serialNo,
-        hasPermanentSerial: serialInfo.isPermanent,
-        serialAssignedAt: serialInfo.assignedAt,
-        serialSource: serialInfo.source
-      });
+    if (!deviceId) {
+      processedDevices.push(device);
+      continue;
     }
     
-    // Small delay between batches
-    if (i + batchSize < devices.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+    const serialInfo = await getOrAssignSerialForDevice(deviceId, device);
+    
+    processedDevices.push({
+      ...device,
+      permanentSerialNo: serialInfo.serialNo,
+      hasPermanentSerial: serialInfo.isPermanent,
+      serialAssignedAt: serialInfo.assignedAt,
+      serialSource: serialInfo.source
+    });
+    
+    // Small delay to avoid overwhelming the backend
+    if (i < devices.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
   
   console.log(`✅ Processed ${processedDevices.length} devices with serials`);
+  console.log(`✅ Highest serial number: ${highestSerialNumber}`);
   return processedDevices;
 }
 
@@ -2281,14 +2318,6 @@ function sortDevicesWithPermanentSerials(devices) {
   // Combine: permanent serials first, then temporary
   const allSorted = [...devicesWithSerials, ...devicesWithoutSerials];
   
-  // Calculate the ACTUAL highest serial number for "NEW" display
-  let highestSerial = 0;
-  devicesWithSerials.forEach(device => {
-    if (device.permanentSerialNo > highestSerial) {
-      highestSerial = device.permanentSerialNo;
-    }
-  });
-  
   // Assign correct display serials
   const totalDevices = allSorted.length;
   
@@ -2303,9 +2332,7 @@ function sortDevicesWithPermanentSerials(devices) {
     }
     
     // Determine if this is the latest device (highest serial)
-    const isLatestDevice = displaySerial === highestSerial || 
-                          (device.hasPermanentSerial && device.permanentSerialNo === highestSerial) ||
-                          index === 0;
+    const isLatestDevice = device.hasPermanentSerial && device.permanentSerialNo === highestSerialNumber;
     
     // Determine if this is the oldest device
     const isOldestDevice = index === totalDevices - 1;
@@ -3137,8 +3164,8 @@ function renderDevice(d, index) {
   
   const displaySerial = d.displaySerial !== undefined ? d.displaySerial : (allDevices.length - 1 - index);
   const hasPermanentSerial = d.isPermanentSerial || d.hasPermanentSerial || false;
-  const isLatestDevice = d.isLatestDevice || (index === 0);
-  const isOldestDevice = d.isOldestDevice || (index === allDevices.length - 1);
+  const isLatestDevice = d.isLatestDevice || false;
+  const isOldestDevice = d.isOldestDevice || false;
   
   let badgeClass = "serial-badge";
   if (hasPermanentSerial) {
@@ -3306,7 +3333,7 @@ async function fetchDevices(isLoadMore = false) {
       
       const cacheLoaded = loadSerialCacheFromLocalStorage();
       if (cacheLoaded) {
-        console.log(`✅ Loaded ${permanentSerialsCache.size} serials from cache`);
+        console.log(`✅ Loaded ${permanentSerialsCache.size} serials from cache, Highest: ${highestSerialNumber}`);
       }
       
       updateLoaderProgress(60);
@@ -3321,6 +3348,7 @@ async function fetchDevices(isLoadMore = false) {
       console.log(`✅ Loaded ${allDevices.length} devices with serials`);
       console.log(`✅ Permanent serials: ${allDevices.filter(d => d.hasPermanentSerial).length}`);
       console.log(`✅ Temporary serials: ${allDevices.filter(d => !d.hasPermanentSerial).length}`);
+      console.log(`✅ Highest serial number: ${highestSerialNumber}`);
       
       updateLoaderProgress(90);
       
